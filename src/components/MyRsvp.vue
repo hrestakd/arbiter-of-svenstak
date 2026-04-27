@@ -94,7 +94,7 @@ async function togglePlusOne(): Promise<void> {
       >
         <span v-if="me.plusOne">Bringing +1 — tap to remove</span>
         <span v-else-if="canBringPlusOne">Coming alone — tap to add +1</span>
-        <span v-else class="text-muted">No-Go can't bring a +1</span>
+        <span v-else class="text-muted">Ostavila te.</span>
       </button>
     </fieldset>
 

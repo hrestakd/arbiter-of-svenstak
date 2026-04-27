@@ -4,13 +4,18 @@
  * edit form.
  */
 
-import { onMounted } from 'vue';
+import { onMounted, ref } from 'vue';
 import { useEventStore } from '@/stores/event';
 
 const eventStore = useEventStore();
+const loading = ref(true);
 
 onMounted(async () => {
-  await eventStore.loadArchive();
+  try {
+    await eventStore.loadArchive();
+  } finally {
+    loading.value = false;
+  }
 });
 </script>
 
@@ -26,7 +31,24 @@ onMounted(async () => {
       <RouterLink class="btn" :to="{ name: 'admin-event-new' }">+ New</RouterLink>
     </header>
 
-    <ul v-if="eventStore.archive.length" class="space-y-2">
+    <div v-if="loading" class="space-y-2" aria-busy="true" aria-live="polite">
+      <div
+        v-for="i in 3"
+        :key="i"
+        class="card animate-pulse"
+      >
+        <div class="flex items-baseline justify-between">
+          <span class="inline-block h-4 w-1/2 bg-muted/30" />
+          <span class="inline-block h-3 w-12 bg-muted/20" />
+        </div>
+        <div class="mt-2 h-3 w-2/3 bg-muted/20" />
+      </div>
+      <p class="text-center text-xs text-muted font-display uppercase tracking-wider pt-1">
+        Loading…
+      </p>
+    </div>
+
+    <ul v-else-if="eventStore.archive.length" class="space-y-2">
       <li v-for="ev in eventStore.archive" :key="ev.id">
         <RouterLink
           :to="{ name: 'admin-event-edit', params: { id: ev.id } }"
