@@ -22,6 +22,7 @@ interface EventRow {
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
+  console.log('[events/by-year]', req.method, 'year=', req.query.year);
   if (req.method !== 'GET') return methodNotAllowed(res, ['GET']);
 
   const yearStr = typeof req.query.year === 'string' ? req.query.year : null;

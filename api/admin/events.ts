@@ -31,16 +31,20 @@ interface EventRow {
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
+  console.log('[admin/events]', req.method);
   if (req.method !== 'POST') return methodNotAllowed(res, ['POST']);
   try {
     const admin = await readAdminSession(req);
+    console.log('[admin/events] admin=', admin?.username ?? null);
     if (!admin) return unauthorized(res);
 
     const parsed = EventUpsert.safeParse(req.body);
     if (!parsed.success) {
+      console.log('[admin/events] validation failed', parsed.error.flatten());
       return fail(res, 400, 'VALIDATION_ERROR', 'Body invalid.', parsed.error.flatten());
     }
     const v = parsed.data;
+    console.log('[admin/events] creating year=', v.year, 'title=', v.title, 'isCurrent=', v.isCurrent);
 
     const event = await withTransaction(async (tx) => {
       if (v.isCurrent) {

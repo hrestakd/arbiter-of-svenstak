@@ -53,10 +53,10 @@ const routes: RouteRecordRaw[] = [
     meta: { title: 'Archive', requiresAttendee: true },
   },
   {
+    // Backwards-compatible redirect; the page is gone but old bookmarks still
+    // resolve. Sign-in now happens via the floating GitHub badge.
     path: '/admin/login',
-    name: 'admin-login',
-    component: () => import('@/views/AdminLoginView.vue'),
-    meta: { title: 'Admin Sign In' },
+    redirect: '/admin',
   },
   {
     path: '/admin',
@@ -128,7 +128,9 @@ router.beforeEach(async (to: RouteLocationNormalized, _from, next: NavigationGua
   if (!session.probed) await session.probe();
 
   if (to.meta.requiresAdmin && !session.isAdmin) {
-    return next({ name: 'admin-login' });
+    // Sign-in is now the floating GitHub badge, visible everywhere — bounce
+    // home so the user can find it.
+    return next('/');
   }
 
   if (to.meta.requiresAttendee) {

@@ -28,6 +28,7 @@ import {
 
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
   const action = typeof req.query.action === 'string' ? req.query.action : null;
+  console.log('[auth]', req.method, 'action=', action);
   try {
     switch (action) {
       case 'github':
@@ -42,6 +43,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
         return notFound(res, `Unknown auth action: ${action ?? '(none)'}`);
     }
   } catch (err) {
+    console.error('[auth] uncaught', err);
     internal(res, err);
   }
 }
@@ -57,6 +59,7 @@ async function github(req: VercelRequest, res: VercelResponse): Promise<void> {
 
   const state = randomToken(24);
   await kv().set(`oauth:state:${state}`, '1', { ex: 600 });
+  console.log('[auth/github] redirecting to GitHub, redirectUri=', redirectUri);
 
   const url = new URL('https://github.com/login/oauth/authorize');
   url.searchParams.set('client_id', clientId);
@@ -79,6 +82,7 @@ async function callback(req: VercelRequest, res: VercelResponse): Promise<void> 
 
   const stateKey = `oauth:state:${state}`;
   const stateVal = await kv().get(stateKey);
+  console.log('[auth/callback] state lookup, found=', stateVal !== null);
   if (!stateVal) {
     return fail(res, 400, 'BAD_STATE', 'OAuth state expired or invalid');
   }
@@ -124,18 +128,25 @@ async function callback(req: VercelRequest, res: VercelResponse): Promise<void> 
     return fail(res, 400, 'OAUTH_FAILED', 'GitHub returned no login');
   }
 
+  console.log('[auth/callback] github user resolved, login=', user.login);
   const allowed = await queryOne(
     'SELECT 1 AS ok FROM admins WHERE github_username = $1',
     [user.login]
   );
+  console.log('[auth/callback] admin allowlist check, allowed=', !!allowed);
   if (!allowed) {
     return forbidden(res, `${user.login} is not on the admin allowlist.`);
   }
 
   const { header } = await createAdminSession(user.login);
-  console.log('[auth/callback] success, setting cookie for', user.login, 'cookie len=', header.length);
-  res.setHeader('Set-Cookie', header);
-  res.redirect(302, '/admin');
+  console.log('[auth/callback] success for', user.login, 'cookie len=', header.length, 'preview=', header.slice(0, 40) + '…');
+  // Use writeHead to set Set-Cookie + Location atomically. setHeader+redirect
+  // can lose the cookie if the runtime later overwrites Set-Cookie.
+  res.writeHead(302, {
+    'Set-Cookie': header,
+    Location: '/admin',
+  });
+  res.end();
 }
 
 async function me(req: VercelRequest, res: VercelResponse): Promise<void> {
@@ -153,6 +164,7 @@ async function me(req: VercelRequest, res: VercelResponse): Promise<void> {
 async function logout(req: VercelRequest, res: VercelResponse): Promise<void> {
   if (req.method !== 'POST') return methodNotAllowed(res, ['POST']);
   const clear = await destroyAdminSession(req);
+  console.log('[auth/logout] cleared admin session');
   res.setHeader('Set-Cookie', clear);
   res.status(204).end();
 }

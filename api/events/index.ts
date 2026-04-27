@@ -18,6 +18,7 @@ interface ListRow {
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
+  console.log('[events/list]', req.method);
   if (req.method !== 'GET') return methodNotAllowed(res, ['GET']);
   try {
     const rows = await query<ListRow>(
@@ -25,6 +26,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
          FROM events
         ORDER BY year DESC`
     );
+    console.log('[events/list] returning', rows.length, 'events');
     res.status(200).json(
       rows.map((r) => ({
         id: r.id,

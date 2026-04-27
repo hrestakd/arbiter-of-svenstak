@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted } from 'vue';
 import { useSessionStore } from '@/stores/session';
+import AdminBadge from '@/components/AdminBadge.vue';
 
 const session = useSessionStore();
 
@@ -11,4 +12,5 @@ onMounted(() => {
 
 <template>
   <RouterView />
+  <AdminBadge />
 </template>

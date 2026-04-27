@@ -41,6 +41,7 @@ function serializeComment(r: CommentRow) {
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
+  console.log('[posts/comments]', req.method, 'postId=', req.query.id);
   const postId = typeof req.query.id === 'string' ? req.query.id : null;
   if (!postId) return fail(res, 400, 'BAD_ID', 'Missing post id');
 

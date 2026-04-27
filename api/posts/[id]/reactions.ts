@@ -25,6 +25,7 @@ interface CountsRow {
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
+  console.log('[posts/reactions]', req.method, 'postId=', req.query.id);
   if (req.method !== 'POST') return methodNotAllowed(res, ['POST']);
 
   const postId = typeof req.query.id === 'string' ? req.query.id : null;
@@ -48,6 +49,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       return fail(res, 400, 'VALIDATION_ERROR', 'Body invalid.', parsed.error.flatten());
     }
     const kind = parsed.data.kind;
+    console.log('[posts/reactions] toggle', kind, 'attendeeId=', session.attendeeId);
 
     const counts = await withTransaction(async (tx) => {
       const existing = await tx.query<{ kind: 'like' | 'dislike' }>(

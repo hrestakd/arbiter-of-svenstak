@@ -14,7 +14,7 @@ onMounted(async () => {
 
 async function logout(): Promise<void> {
   await session.logoutAdmin();
-  await router.push({ name: 'admin-login' });
+  await router.push('/');
 }
 </script>
 

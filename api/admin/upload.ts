@@ -16,9 +16,11 @@ import { readAdminSession } from '../_lib/session.js';
 const MAX_BYTES = 8 * 1024 * 1024; // 8 MB
 
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
+  console.log('[admin/upload]', req.method);
   if (req.method !== 'POST') return methodNotAllowed(res, ['POST']);
   try {
     const admin = await readAdminSession(req);
+    console.log('[admin/upload] admin=', admin?.username ?? null);
     if (!admin) return unauthorized(res);
 
     const body = req.body as HandleUploadBody;

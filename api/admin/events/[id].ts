@@ -43,11 +43,13 @@ const FIELD_MAP: Record<string, string> = {
 };
 
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
+  console.log('[admin/events/:id]', req.method, 'id=', req.query.id);
   const id = typeof req.query.id === 'string' ? req.query.id : null;
   if (!id) return fail(res, 400, 'BAD_ID', 'Missing event id');
 
   try {
     const admin = await readAdminSession(req);
+    console.log('[admin/events/:id] admin=', admin?.username ?? null);
     if (!admin) return unauthorized(res);
 
     if (req.method === 'PATCH') return patch(req, res, id);

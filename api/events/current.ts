@@ -21,6 +21,7 @@ interface EventRow {
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
+  console.log('[events/current]', req.method);
   if (req.method !== 'GET') {
     return methodNotAllowed(res, ['GET']);
   }
@@ -32,6 +33,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
         WHERE is_current = true
         LIMIT 1`
     );
+    console.log('[events/current] found=', !!row, row ? `id=${row.id} year=${row.year}` : '');
     if (!row) return notFound(res, 'No current event has been published yet.');
     res.status(200).json(serializeEvent(row));
   } catch (err) {
