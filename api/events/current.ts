@@ -14,11 +14,15 @@ interface EventRow {
   theme: string | null;
   description: string;
   location: string;
+  location_map_url: string | null;
   starts_at: string;
   header_image_url: string | null;
   payment_tags: unknown;
   is_current: boolean;
 }
+
+export const EVENT_COLUMNS = `id, year, title, theme, description, location, location_map_url,
+              starts_at, header_image_url, payment_tags, is_current`;
 
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
   console.log('[events/current]', req.method);
@@ -27,8 +31,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
   }
   try {
     const row = await queryOne<EventRow>(
-      `SELECT id, year, title, theme, description, location, starts_at,
-              header_image_url, payment_tags, is_current
+      `SELECT ${EVENT_COLUMNS}
          FROM events
         WHERE is_current = true
         LIMIT 1`
@@ -49,6 +52,7 @@ export function serializeEvent(row: EventRow) {
     theme: row.theme,
     description: row.description,
     location: row.location,
+    locationMapUrl: row.location_map_url,
     startsAt: row.starts_at,
     headerImageUrl: row.header_image_url,
     paymentTags: row.payment_tags,
