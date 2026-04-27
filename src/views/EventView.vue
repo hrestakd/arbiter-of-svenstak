@@ -14,6 +14,7 @@ import { useRealtime } from '@/composables/useRealtime';
 import AttendeeList from '@/components/AttendeeList.vue';
 import MealPoll from '@/components/MealPoll.vue';
 import ActivityFeed from '@/components/ActivityFeed.vue';
+import MyRsvp from '@/components/MyRsvp.vue';
 
 const props = defineProps<{ archiveYear?: number }>();
 const store = useEventStore();
@@ -125,6 +126,8 @@ const formattedDate = computed(() => {
           />
         </div>
       </article>
+
+      <MyRsvp v-if="!isArchive && session.isAttendee" />
 
       <AttendeeList :attendees="store.attendees" />
       <MealPoll :event-id="eventId" :readonly="isReadOnly" />
