@@ -6,12 +6,7 @@
  * instance, avoiding per-request handshakes.
  */
 
-import { Pool, neonConfig } from '@neondatabase/serverless';
-
-// Neon's serverless driver supports websockets for transactions; on Node
-// we don't need to override webSocketConstructor, but turn on the bundle's
-// fetch for HTTP queries.
-neonConfig.fetchConnectionCache = true;
+import { Pool } from '@neondatabase/serverless';
 
 let pool: Pool | undefined;
 

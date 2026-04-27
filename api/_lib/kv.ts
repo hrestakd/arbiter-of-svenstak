@@ -11,10 +11,14 @@ let client: Redis | undefined;
 
 export function kv(): Redis {
   if (!client) {
-    const url = process.env.KV_REST_API_URL;
-    const token = process.env.KV_REST_API_TOKEN;
+    // Vercel Marketplace exposes Upstash under one of two naming schemes
+    // depending on how/when the integration was installed.
+    const url = process.env.KV_REST_API_URL ?? process.env.UPSTASH_REDIS_REST_URL;
+    const token = process.env.KV_REST_API_TOKEN ?? process.env.UPSTASH_REDIS_REST_TOKEN;
     if (!url || !token) {
-      throw new Error('KV_REST_API_URL / KV_REST_API_TOKEN are not set');
+      throw new Error(
+        'Redis env vars not set. Expected KV_REST_API_URL/KV_REST_API_TOKEN or UPSTASH_REDIS_REST_URL/UPSTASH_REDIS_REST_TOKEN.'
+      );
     }
     client = new Redis({ url, token });
   }

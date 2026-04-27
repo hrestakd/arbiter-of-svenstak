@@ -5,17 +5,17 @@
  */
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { withTransaction } from '../_lib/db';
+import { withTransaction } from '../_lib/db.js';
 import {
   fail,
   internal,
   methodNotAllowed,
   unauthorized,
-} from '../_lib/errors';
-import { readAdminSession } from '../_lib/session';
-import { EventUpsert } from '../_lib/schemas';
-import { trigger } from '../_lib/pusher';
-import { serializeEvent } from '../events/current';
+} from '../_lib/errors.js';
+import { readAdminSession } from '../_lib/session.js';
+import { EventUpsert } from '../_lib/schemas.js';
+import { trigger } from '../_lib/pusher.js';
+import { serializeEvent } from '../events/current.js';
 
 interface EventRow {
   id: string;

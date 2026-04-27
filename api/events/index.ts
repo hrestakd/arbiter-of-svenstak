@@ -4,8 +4,8 @@
  */
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { query } from '../_lib/db';
-import { internal, methodNotAllowed } from '../_lib/errors';
+import { query } from '../_lib/db.js';
+import { internal, methodNotAllowed } from '../_lib/errors.js';
 
 interface ListRow {
   id: string;

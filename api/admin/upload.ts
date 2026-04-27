@@ -10,8 +10,8 @@
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { handleUpload, type HandleUploadBody } from '@vercel/blob/client';
-import { internal, methodNotAllowed, unauthorized } from '../_lib/errors';
-import { readAdminSession } from '../_lib/session';
+import { internal, methodNotAllowed, unauthorized } from '../_lib/errors.js';
+import { readAdminSession } from '../_lib/session.js';
 
 const MAX_BYTES = 8 * 1024 * 1024; // 8 MB
 

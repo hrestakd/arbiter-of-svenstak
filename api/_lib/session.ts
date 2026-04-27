@@ -10,8 +10,8 @@
  */
 
 import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
-import { kv } from './kv';
-import { queryOne } from './db';
+import { kv } from './kv.js';
+import { queryOne } from './db.js';
 
 const ATTENDEE_COOKIE = 'attendee_session';
 const ADMIN_COOKIE = 'admin_session';

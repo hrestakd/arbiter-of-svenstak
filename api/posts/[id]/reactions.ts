@@ -7,17 +7,17 @@
  */
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { queryOne, withTransaction } from '../../_lib/db';
+import { queryOne, withTransaction } from '../../_lib/db.js';
 import {
   fail,
   internal,
   methodNotAllowed,
   notFound,
   unauthorized,
-} from '../../_lib/errors';
-import { readAttendeeSession } from '../../_lib/session';
-import { ReactionCreate } from '../../_lib/schemas';
-import { trigger } from '../../_lib/pusher';
+} from '../../_lib/errors.js';
+import { readAttendeeSession } from '../../_lib/session.js';
+import { ReactionCreate } from '../../_lib/schemas.js';
+import { trigger } from '../../_lib/pusher.js';
 
 interface CountsRow {
   like_count: string;

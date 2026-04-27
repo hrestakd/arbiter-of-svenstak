@@ -14,7 +14,7 @@
  */
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { isUniqueViolation, query, queryOne } from '../../_lib/db';
+import { isUniqueViolation, query, queryOne } from '../../_lib/db.js';
 import {
   conflict,
   fail,
@@ -23,21 +23,21 @@ import {
   notFound,
   tooManyRequests,
   unauthorized,
-} from '../../_lib/errors';
-import { incrWithExpiry } from '../../_lib/kv';
+} from '../../_lib/errors.js';
+import { incrWithExpiry } from '../../_lib/kv.js';
 import {
   createAttendeeCookie,
   randomToken,
   readAttendeeSession,
-} from '../../_lib/session';
+} from '../../_lib/session.js';
 import {
   AttendeeCreate,
   AttendeePatch,
   PollVote,
   PostCreate,
-} from '../../_lib/schemas';
-import { trigger } from '../../_lib/pusher';
-import { serializeEvent } from '../current';
+} from '../../_lib/schemas.js';
+import { trigger } from '../../_lib/pusher.js';
+import { serializeEvent } from '../current.js';
 
 interface EventRow {
   id: string;

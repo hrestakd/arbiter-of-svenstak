@@ -5,7 +5,7 @@
  */
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { query, queryOne } from '../../_lib/db';
+import { query, queryOne } from '../../_lib/db.js';
 import {
   fail,
   internal,
@@ -13,11 +13,11 @@ import {
   notFound,
   tooManyRequests,
   unauthorized,
-} from '../../_lib/errors';
-import { incrWithExpiry } from '../../_lib/kv';
-import { readAttendeeSession } from '../../_lib/session';
-import { CommentCreate } from '../../_lib/schemas';
-import { trigger } from '../../_lib/pusher';
+} from '../../_lib/errors.js';
+import { incrWithExpiry } from '../../_lib/kv.js';
+import { readAttendeeSession } from '../../_lib/session.js';
+import { CommentCreate } from '../../_lib/schemas.js';
+import { trigger } from '../../_lib/pusher.js';
 
 interface CommentRow {
   id: string;

@@ -9,14 +9,14 @@
  */
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { kv } from '../_lib/kv';
-import { queryOne } from '../_lib/db';
+import { kv } from '../_lib/kv.js';
+import { queryOne } from '../_lib/db.js';
 import {
   createAdminSession,
   destroyAdminSession,
   randomToken,
   readAdminSession,
-} from '../_lib/session';
+} from '../_lib/session.js';
 import {
   fail,
   forbidden,
@@ -24,7 +24,7 @@ import {
   methodNotAllowed,
   notFound,
   unauthorized,
-} from '../_lib/errors';
+} from '../_lib/errors.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
   const action = typeof req.query.action === 'string' ? req.query.action : null;
@@ -133,13 +133,19 @@ async function callback(req: VercelRequest, res: VercelResponse): Promise<void> 
   }
 
   const { header } = await createAdminSession(user.login);
+  console.log('[auth/callback] success, setting cookie for', user.login, 'cookie len=', header.length);
   res.setHeader('Set-Cookie', header);
   res.redirect(302, '/admin');
 }
 
 async function me(req: VercelRequest, res: VercelResponse): Promise<void> {
   if (req.method !== 'GET') return methodNotAllowed(res, ['GET']);
+  res.setHeader('Cache-Control', 'no-store');
+  const cookieHeader = req.headers.cookie ?? '';
+  const hasAdminCookie = cookieHeader.includes('admin_session=');
+  console.log('[auth/me] cookie header present=', !!cookieHeader, 'has admin_session=', hasAdminCookie);
   const admin = await readAdminSession(req);
+  console.log('[auth/me] resolved admin=', admin?.username ?? null);
   if (!admin) return unauthorized(res, 'Not signed in.');
   res.status(200).json({ username: admin.username });
 }

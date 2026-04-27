@@ -4,8 +4,8 @@
  */
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { queryOne } from '../_lib/db';
-import { internal, methodNotAllowed, notFound } from '../_lib/errors';
+import { queryOne } from '../_lib/db.js';
+import { internal, methodNotAllowed, notFound } from '../_lib/errors.js';
 
 interface EventRow {
   id: string;
