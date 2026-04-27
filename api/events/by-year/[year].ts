@@ -6,7 +6,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { queryOne } from '../../_lib/db.js';
 import { fail, internal, methodNotAllowed, notFound } from '../../_lib/errors.js';
-import { serializeEvent } from '../current.js';
+import { EVENT_COLUMNS, serializeEvent } from '../current.js';
 
 interface EventRow {
   id: string;
@@ -15,6 +15,7 @@ interface EventRow {
   theme: string | null;
   description: string;
   location: string;
+  location_map_url: string | null;
   starts_at: string;
   header_image_url: string | null;
   payment_tags: unknown;
@@ -33,8 +34,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
 
   try {
     const row = await queryOne<EventRow>(
-      `SELECT id, year, title, theme, description, location, starts_at,
-              header_image_url, payment_tags, is_current
+      `SELECT ${EVENT_COLUMNS}
          FROM events
         WHERE year = $1`,
       [year]

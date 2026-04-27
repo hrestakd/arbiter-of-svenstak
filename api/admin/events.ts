@@ -15,7 +15,7 @@ import {
 import { readAdminSession } from '../_lib/session.js';
 import { EventUpsert } from '../_lib/schemas.js';
 import { trigger } from '../_lib/pusher.js';
-import { serializeEvent } from '../events/current.js';
+import { EVENT_COLUMNS, serializeEvent } from '../events/current.js';
 
 interface EventRow {
   id: string;
@@ -24,6 +24,7 @@ interface EventRow {
   theme: string | null;
   description: string;
   location: string;
+  location_map_url: string | null;
   starts_at: string;
   header_image_url: string | null;
   payment_tags: unknown;
@@ -52,17 +53,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       }
       const rows = await tx.query<EventRow>(
         `INSERT INTO events
-           (year, title, theme, description, location, starts_at,
-            header_image_url, payment_tags, is_current, created_by)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9, $10)
-         RETURNING id, year, title, theme, description, location, starts_at,
-                   header_image_url, payment_tags, is_current`,
+           (year, title, theme, description, location, location_map_url,
+            starts_at, header_image_url, payment_tags, is_current, created_by)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb, $10, $11)
+         RETURNING ${EVENT_COLUMNS}`,
         [
           v.year,
           v.title,
           v.theme ?? null,
           v.description ?? '',
           v.location ?? '',
+          v.locationMapUrl ?? null,
           v.startsAt,
           v.headerImageUrl ?? null,
           JSON.stringify(v.paymentTags ?? []),

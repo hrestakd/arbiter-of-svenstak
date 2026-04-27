@@ -21,6 +21,7 @@ export interface EventDetail {
   theme: string | null;
   description: string;
   location: string;
+  locationMapUrl: string | null;
   startsAt: string;
   headerImageUrl: string | null;
   paymentTags: PaymentTag[];

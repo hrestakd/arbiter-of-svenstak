@@ -37,7 +37,7 @@ import {
   PostCreate,
 } from '../../_lib/schemas.js';
 import { trigger } from '../../_lib/pusher.js';
-import { serializeEvent } from '../current.js';
+import { EVENT_COLUMNS, serializeEvent } from '../current.js';
 
 interface EventRow {
   id: string;
@@ -46,6 +46,7 @@ interface EventRow {
   theme: string | null;
   description: string;
   location: string;
+  location_map_url: string | null;
   starts_at: string;
   header_image_url: string | null;
   payment_tags: unknown;
@@ -189,9 +190,7 @@ async function listAttendees(req: VercelRequest, res: VercelResponse, eventId: s
 async function createAttendee(req: VercelRequest, res: VercelResponse, eventId: string): Promise<void> {
   console.log('[events/attendees] create attempt, eventId=', eventId);
   const event = await queryOne<EventRow>(
-    `SELECT id, year, title, theme, description, location, starts_at,
-            header_image_url, payment_tags, is_current
-       FROM events WHERE id = $1`,
+    `SELECT ${EVENT_COLUMNS} FROM events WHERE id = $1`,
     [eventId]
   );
   if (!event) {

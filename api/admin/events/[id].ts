@@ -16,7 +16,7 @@ import {
 import { readAdminSession } from '../../_lib/session.js';
 import { EventPatch } from '../../_lib/schemas.js';
 import { trigger } from '../../_lib/pusher.js';
-import { serializeEvent } from '../../events/current.js';
+import { EVENT_COLUMNS, serializeEvent } from '../../events/current.js';
 
 interface EventRow {
   id: string;
@@ -25,6 +25,7 @@ interface EventRow {
   theme: string | null;
   description: string;
   location: string;
+  location_map_url: string | null;
   starts_at: string;
   header_image_url: string | null;
   payment_tags: unknown;
@@ -37,6 +38,7 @@ const FIELD_MAP: Record<string, string> = {
   theme: 'theme',
   description: 'description',
   location: 'location',
+  locationMapUrl: 'location_map_url',
   startsAt: 'starts_at',
   headerImageUrl: 'header_image_url',
   isCurrent: 'is_current',
@@ -91,9 +93,7 @@ async function patch(req: VercelRequest, res: VercelResponse, id: string): Promi
     if (sets.length === 0) {
       // No-op; just return current row.
       const rows = await tx.query<EventRow>(
-        `SELECT id, year, title, theme, description, location, starts_at,
-                header_image_url, payment_tags, is_current
-           FROM events WHERE id = $1`,
+        `SELECT ${EVENT_COLUMNS} FROM events WHERE id = $1`,
         [id]
       );
       return rows[0] ?? null;
@@ -104,8 +104,7 @@ async function patch(req: VercelRequest, res: VercelResponse, id: string): Promi
     const rows = await tx.query<EventRow>(
       `UPDATE events SET ${sets.join(', ')}
         WHERE id = $${params.length}
-        RETURNING id, year, title, theme, description, location, starts_at,
-                  header_image_url, payment_tags, is_current`,
+        RETURNING ${EVENT_COLUMNS}`,
       params
     );
     return rows[0] ?? null;
