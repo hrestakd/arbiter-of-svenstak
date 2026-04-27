@@ -37,11 +37,11 @@ const SECTION_LABELS: Record<Attendance, string> = {
         <li
           v-for="a in grouped[kind]"
           :key="a.id"
-          class="inline-flex items-center gap-1 rounded-full bg-bg/60 px-3 py-1 text-sm"
-          :class="kind === 'no_go' ? 'line-through text-muted' : ''"
+          class="inline-flex items-center gap-1 bg-bg border-2 border-ink/40 px-2 py-0.5 text-sm font-body"
+          :class="kind === 'no_go' ? 'line-through text-muted opacity-70' : ''"
         >
           <span>{{ a.firstName }} {{ a.lastName }}</span>
-          <span v-if="a.plusOne" class="text-accent" title="+1 / partner">+1</span>
+          <span v-if="a.plusOne" class="text-accent font-display text-[10px]" title="+1 / partner">+1</span>
         </li>
       </ul>
       <p v-else class="text-sm text-muted">—</p>

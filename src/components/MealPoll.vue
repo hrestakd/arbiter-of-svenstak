@@ -40,18 +40,20 @@ async function vote(choice: Choice): Promise<void> {
       <li v-for="opt in OPTIONS" :key="opt.value">
         <button
           type="button"
-          class="w-full text-left rounded-lg border border-muted/30 px-3 py-2 transition-colors"
-          :class="store.poll.mine === opt.value ? 'border-accent bg-accent/10' : 'hover:bg-bg/40'"
+          class="w-full text-left border-2 border-ink/40 px-3 py-2 transition-all duration-75 disabled:cursor-not-allowed"
+          :class="store.poll.mine === opt.value
+            ? 'border-accent bg-accent/15 shadow-pixel-sm'
+            : 'hover:border-ink hover:bg-accent-2/10'"
           :disabled="readonly"
           @click="vote(opt.value)"
         >
-          <div class="flex items-baseline justify-between">
-            <span class="font-medium">{{ opt.label }}</span>
-            <span class="text-sm text-muted">
+          <div class="flex items-baseline justify-between gap-2">
+            <span class="font-display text-[10px] uppercase tracking-wider">{{ opt.label }}</span>
+            <span class="text-sm text-muted font-body">
               {{ store.poll.counts[opt.value] }} · {{ pct(store.poll.counts[opt.value]) }}%
             </span>
           </div>
-          <div class="mt-1 h-1 rounded bg-muted/20 overflow-hidden">
+          <div class="mt-2 h-2 bg-bg border border-ink/40 overflow-hidden">
             <div
               class="h-full bg-accent transition-all"
               :style="{ width: `${pct(store.poll.counts[opt.value])}%` }"

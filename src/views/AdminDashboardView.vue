@@ -1,58 +1,72 @@
 <script setup lang="ts">
-import { onMounted } from 'vue';
+/**
+ * Admin landing — explicit tile menu. Each tile is a route into a single
+ * admin task. Keeps the surface tiny and obvious.
+ */
+
 import { useRouter } from 'vue-router';
-import { useEventStore } from '@/stores/event';
 import { useSessionStore } from '@/stores/session';
 
 const router = useRouter();
-const eventStore = useEventStore();
 const session = useSessionStore();
-
-onMounted(async () => {
-  await eventStore.loadArchive();
-});
 
 async function logout(): Promise<void> {
   await session.logoutAdmin();
   await router.push('/');
 }
+
+interface Tile {
+  to: { name: string };
+  title: string;
+  blurb: string;
+  glyph: string;
+}
+
+const tiles: Tile[] = [
+  {
+    to: { name: 'admin-events' },
+    title: 'Events',
+    blurb: 'Browse and edit existing years.',
+    glyph: '▦',
+  },
+  {
+    to: { name: 'admin-event-new' },
+    title: 'New event',
+    blurb: 'Create a new year with image, date, location, theme.',
+    glyph: '✦',
+  },
+];
 </script>
 
 <template>
-  <main class="min-h-screen p-4 sm:p-8 max-w-3xl mx-auto space-y-5">
+  <main class="min-h-screen p-4 sm:p-8 max-w-3xl mx-auto space-y-6">
     <header class="flex items-baseline justify-between flex-wrap gap-3">
-      <h1 class="text-3xl">Admin</h1>
-      <div class="flex items-center gap-3 text-sm">
-        <span class="text-muted">Signed in as <strong>{{ session.admin?.username }}</strong></span>
-        <button class="btn-ghost" type="button" @click="logout">Sign out</button>
+      <div class="space-y-1">
+        <h1 class="text-2xl">Admin Console</h1>
+        <p class="text-sm text-muted font-body">
+          Signed in as <strong>{{ session.admin?.username }}</strong>
+        </p>
       </div>
+      <button class="btn-ghost" type="button" @click="logout">Sign out</button>
     </header>
 
-    <section class="space-y-3">
-      <div class="flex items-baseline justify-between">
-        <h2 class="text-xl">Events</h2>
-        <RouterLink class="btn" :to="{ name: 'admin-event-new' }">+ New event</RouterLink>
-      </div>
+    <nav class="grid sm:grid-cols-2 gap-4">
+      <RouterLink
+        v-for="t in tiles"
+        :key="t.title"
+        :to="t.to"
+        class="card flex flex-col gap-2 hover:-translate-x-0.5 hover:-translate-y-0.5 transition-transform"
+      >
+        <div class="text-3xl text-accent font-display" aria-hidden="true">{{ t.glyph }}</div>
+        <div class="font-display text-sm uppercase tracking-wider">{{ t.title }}</div>
+        <p class="text-sm text-muted font-body">{{ t.blurb }}</p>
+      </RouterLink>
+    </nav>
 
-      <ul v-if="eventStore.archive.length" class="space-y-2">
-        <li v-for="ev in eventStore.archive" :key="ev.id">
-          <RouterLink
-            :to="{ name: 'admin-event-edit', params: { id: ev.id } }"
-            class="card block hover:opacity-90"
-          >
-            <div class="flex items-baseline justify-between">
-              <span class="font-medium">{{ ev.title }}</span>
-              <span class="text-sm text-muted">{{ ev.year }}</span>
-            </div>
-            <div class="text-sm text-muted">
-              {{ new Date(ev.startsAt).toLocaleDateString() }}
-              <span v-if="ev.theme"> · {{ ev.theme }}</span>
-              <span v-if="ev.isCurrent" class="text-accent ml-2">· current</span>
-            </div>
-          </RouterLink>
-        </li>
-      </ul>
-      <p v-else class="card text-center text-muted">No events yet — create the first one.</p>
-    </section>
+    <footer class="text-center pt-4">
+      <RouterLink to="/event" class="text-sm text-muted hover:text-ink font-body">
+        ← Back to the public event
+      </RouterLink>
+    </footer>
   </main>
 </template>

@@ -46,19 +46,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
   if (!postId) return fail(res, 400, 'BAD_ID', 'Missing post id');
 
   try {
-    const session = await readAttendeeSession(req);
-    if (!session) return unauthorized(res);
-
     const post = await queryOne<{ id: string; event_id: string }>(
       'SELECT id, event_id FROM posts WHERE id = $1',
       [postId]
     );
     if (!post) return notFound(res, 'Post not found.');
-    if (post.event_id !== session.eventId) {
-      return fail(res, 403, 'WRONG_EVENT', 'Wrong event for this session.');
-    }
 
     if (req.method === 'GET') {
+      // Public read.
       const rows = await query<CommentRow>(
         `SELECT c.id, c.post_id, c.attendee_id, c.body, c.created_at,
                 a.first_name, a.last_name
@@ -69,6 +64,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
         [postId]
       );
       return void res.status(200).json(rows.map(serializeComment));
+    }
+
+    // Writes still require an attendee session for the matching event.
+    const session = await readAttendeeSession(req);
+    if (!session) return unauthorized(res);
+    if (post.event_id !== session.eventId) {
+      return fail(res, 403, 'WRONG_EVENT', 'Wrong event for this session.');
     }
 
     if (req.method === 'POST') {

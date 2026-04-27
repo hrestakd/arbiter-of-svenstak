@@ -45,7 +45,7 @@ function continueToEvent(): void {
         <li
           v-for="(tag, i) in tags"
           :key="i"
-          class="flex items-center justify-between rounded-lg border border-muted/30 px-3 py-2"
+          class="flex items-center justify-between border-2 border-ink/40 px-3 py-2"
         >
           <div>
             <div class="text-sm text-muted">{{ tag.label }}</div>

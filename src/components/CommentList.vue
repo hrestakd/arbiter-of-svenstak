@@ -3,7 +3,7 @@ import { computed, onMounted, ref } from 'vue';
 import { useFeedStore } from '@/stores/feed';
 import { useTimeAgo } from '@/composables/useTimeAgo';
 
-const props = defineProps<{ postId: string }>();
+const props = defineProps<{ postId: string; readonly?: boolean }>();
 
 const feed = useFeedStore();
 const draft = ref('');
@@ -45,7 +45,7 @@ async function submit(): Promise<void> {
     </ul>
     <p v-else class="text-sm text-muted">No comments yet.</p>
 
-    <form class="flex gap-2" @submit.prevent="submit">
+    <form v-if="!readonly" class="flex gap-2" @submit.prevent="submit">
       <input
         v-model="draft"
         class="input flex-1"

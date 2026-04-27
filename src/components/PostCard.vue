@@ -34,6 +34,6 @@ async function react(kind: 'like' | 'dislike'): Promise<void> {
         💬 {{ post.commentCount }} {{ post.commentCount === 1 ? 'comment' : 'comments' }}
       </button>
     </footer>
-    <CommentList v-if="showComments && !readonly" :post-id="post.id" />
+    <CommentList v-if="showComments" :post-id="post.id" :readonly="readonly" />
   </article>
 </template>

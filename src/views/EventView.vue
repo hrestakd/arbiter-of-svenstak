@@ -1,12 +1,15 @@
 <script setup lang="ts">
 /**
- * The main event page. Used in two modes:
- *   - default: current event, full read/write
- *   - archive: pass `archiveYear` prop, read-only, no realtime
+ * The main event page. Three modes:
+ *   - attendee: full read/write
+ *   - guest:    read-only, with a banner offering to RSVP
+ *   - archive:  pass `archiveYear` prop, read-only, no realtime
  */
 
 import { computed, onMounted, ref, watch } from 'vue';
+import { useRouter } from 'vue-router';
 import { useEventStore } from '@/stores/event';
+import { useSessionStore } from '@/stores/session';
 import { useRealtime } from '@/composables/useRealtime';
 import AttendeeList from '@/components/AttendeeList.vue';
 import MealPoll from '@/components/MealPoll.vue';
@@ -14,6 +17,16 @@ import ActivityFeed from '@/components/ActivityFeed.vue';
 
 const props = defineProps<{ archiveYear?: number }>();
 const store = useEventStore();
+const session = useSessionStore();
+const router = useRouter();
+
+const isReadOnly = computed(() => isArchive.value || !session.canWrite);
+const showGuestBanner = computed(() => !isArchive.value && session.guestMode && !session.isAttendee);
+
+function rsvpNow(): void {
+  session.exitGuestMode();
+  void router.push({ name: 'gate' });
+}
 
 const loading = ref(true);
 const error = ref<string | null>(null);
@@ -66,6 +79,18 @@ const formattedDate = computed(() => {
     <p v-else-if="error" class="card text-center text-danger">{{ error }}</p>
 
     <template v-else-if="store.event && eventId">
+      <div
+        v-if="showGuestBanner"
+        class="card flex items-center justify-between gap-3 bg-accent/10 border-accent/30"
+      >
+        <p class="text-sm">
+          Ti si lurker. Ako želiš ustati sa cuck-chaira, attendaj
+        </p>
+        <button class="btn-ghost text-sm" type="button" @click="rsvpNow">
+          Attend →
+        </button>
+      </div>
+
       <article class="card overflow-hidden p-0">
         <img
           v-if="store.event.headerImageUrl"
@@ -89,12 +114,12 @@ const formattedDate = computed(() => {
       </article>
 
       <AttendeeList :attendees="store.attendees" />
-      <MealPoll :event-id="eventId" :readonly="isArchive" />
-      <ActivityFeed :event-id="eventId" :readonly="isArchive" />
+      <MealPoll :event-id="eventId" :readonly="isReadOnly" />
+      <ActivityFeed :event-id="eventId" :readonly="isReadOnly" />
 
       <div class="text-center pt-4">
         <RouterLink to="/archive" class="text-sm text-muted hover:text-ink">
-          Browse past years →
+          Arhiv Prijateljstva →
         </RouterLink>
       </div>
     </template>

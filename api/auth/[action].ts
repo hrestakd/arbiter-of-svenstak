@@ -16,6 +16,7 @@ import {
   destroyAdminSession,
   randomToken,
   readAdminSession,
+  readAttendeeSession,
 } from '../_lib/session.js';
 import {
   fail,
@@ -23,7 +24,6 @@ import {
   internal,
   methodNotAllowed,
   notFound,
-  unauthorized,
 } from '../_lib/errors.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
@@ -152,13 +152,24 @@ async function callback(req: VercelRequest, res: VercelResponse): Promise<void> 
 async function me(req: VercelRequest, res: VercelResponse): Promise<void> {
   if (req.method !== 'GET') return methodNotAllowed(res, ['GET']);
   res.setHeader('Cache-Control', 'no-store');
-  const cookieHeader = req.headers.cookie ?? '';
-  const hasAdminCookie = cookieHeader.includes('admin_session=');
-  console.log('[auth/me] cookie header present=', !!cookieHeader, 'has admin_session=', hasAdminCookie);
-  const admin = await readAdminSession(req);
-  console.log('[auth/me] resolved admin=', admin?.username ?? null);
-  if (!admin) return unauthorized(res, 'Not signed in.');
-  res.status(200).json({ username: admin.username });
+  const [admin, attendee] = await Promise.all([
+    readAdminSession(req),
+    readAttendeeSession(req),
+  ]);
+  console.log('[auth/me] admin=', admin?.username ?? null, 'attendee=', attendee?.attendeeId ?? null);
+  res.status(200).json({
+    admin: admin ? { username: admin.username } : null,
+    attendee: attendee
+      ? {
+          id: attendee.attendeeId,
+          eventId: attendee.eventId,
+          firstName: attendee.firstName,
+          lastName: attendee.lastName,
+          attendance: attendee.attendance,
+          plusOne: attendee.plusOne,
+        }
+      : null,
+  });
 }
 
 async function logout(req: VercelRequest, res: VercelResponse): Promise<void> {

@@ -2,10 +2,10 @@
  * Vue Router config + navigation guards.
  *
  * Two guard layers:
- *   - admin routes: require an admin session (probed by useSessionStore)
- *   - attendee routes: require an attendee_session cookie. We probe lazily
- *     by trying /api/events/current → list attendees; if that 401s the user
- *     is bounced back to /.
+ *   - admin routes: require an admin session (populated by useSessionStore.probe)
+ *   - attendee routes: require either a real attendee session or guest mode.
+ *     Both are tracked client-side; the attendee one is populated from the
+ *     /api/auth/me probe on app boot.
  */
 
 import {
@@ -16,9 +16,6 @@ import {
   type RouteRecordRaw,
 } from 'vue-router';
 import { useSessionStore } from '@/stores/session';
-import { useEventStore } from '@/stores/event';
-import { api } from '@/composables/useApi';
-import type { ApiError } from '@/composables/useApi';
 
 const routes: RouteRecordRaw[] = [
   {
@@ -65,6 +62,12 @@ const routes: RouteRecordRaw[] = [
     meta: { title: 'Admin', requiresAdmin: true },
   },
   {
+    path: '/admin/events',
+    name: 'admin-events',
+    component: () => import('@/views/AdminEventsView.vue'),
+    meta: { title: 'Events', requiresAdmin: true },
+  },
+  {
     path: '/admin/event/new',
     name: 'admin-event-new',
     component: () => import('@/views/AdminEventEditView.vue'),
@@ -90,39 +93,6 @@ export const router = createRouter({
   scrollBehavior: () => ({ top: 0 }),
 });
 
-// Track whether we've ever successfully confirmed the attendee cookie.
-// Once confirmed for the session, we skip the per-navigation probe.
-let attendeeConfirmed = false;
-
-async function confirmAttendee(): Promise<boolean> {
-  if (attendeeConfirmed) return true;
-  const eventStore = useEventStore();
-  const session = useSessionStore();
-  try {
-    const event = eventStore.event ?? (await eventStore.loadCurrent());
-    if (!event) return false;
-    // Probe by hitting an attendee-only endpoint.
-    await api.get(`/api/events/${event.id}/attendees`);
-    attendeeConfirmed = true;
-    if (!session.attendee) {
-      // We have a valid cookie but no in-memory session shape; fall back to
-      // marking the session as "present, identity unknown until reload".
-      session.setAttendee({
-        id: 'unknown',
-        eventId: event.id,
-        firstName: '',
-        lastName: '',
-        attendance: 'attending',
-        plusOne: false,
-      });
-    }
-    return true;
-  } catch (err) {
-    if ((err as ApiError).status === 401) return false;
-    throw err;
-  }
-}
-
 router.beforeEach(async (to: RouteLocationNormalized, _from, next: NavigationGuardNext) => {
   const session = useSessionStore();
   if (!session.probed) await session.probe();
@@ -133,12 +103,12 @@ router.beforeEach(async (to: RouteLocationNormalized, _from, next: NavigationGua
     return next('/');
   }
 
-  if (to.meta.requiresAttendee) {
-    const ok = await confirmAttendee();
-    if (!ok) return next({ name: 'gate' });
+  if (to.meta.requiresAttendee && !session.canView) {
+    return next({ name: 'gate' });
   }
 
-  if (to.name === 'gate' && session.isAttendee && attendeeConfirmed) {
+  // Skip the gate if the user is already in (real attendee or guest).
+  if (to.name === 'gate' && session.canView) {
     return next({ name: 'event' });
   }
 
@@ -149,8 +119,3 @@ router.afterEach((to) => {
   const title = (to.meta.title as string | undefined) ?? 'Arbiter of Svenstak';
   document.title = `${title} · Arbiter of Svenstak`;
 });
-
-/** Called after a successful gate submission so subsequent navigations don't re-probe. */
-export function markAttendeeConfirmed(): void {
-  attendeeConfirmed = true;
-}

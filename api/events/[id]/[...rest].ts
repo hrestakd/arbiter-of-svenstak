@@ -172,10 +172,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
 
 // ---------- /api/events/:id/attendees ----------
 
-async function listAttendees(req: VercelRequest, res: VercelResponse, eventId: string): Promise<void> {
-  const session = await readAttendeeSession(req);
-  console.log('[events/attendees] list, hasSession=', !!session, 'sessionEvent=', session?.eventId);
-  if (!session) return fail(res, 401, 'UNAUTHORIZED', 'Submit the gate form first.');
+async function listAttendees(_req: VercelRequest, res: VercelResponse, eventId: string): Promise<void> {
+  // Public read: guests (skip-the-gate) and attendees both see the list.
+  console.log('[events/attendees] list (public)');
   const rows = await query<AttendeeRow>(
     `SELECT id, event_id, first_name, last_name, attendance, plus_one, created_at
        FROM attendees
@@ -223,7 +222,7 @@ async function createAttendee(req: VercelRequest, res: VercelResponse, eventId: 
       return conflict(
         res,
         'NAME_TAKEN',
-        'Someone has already signed up with that name. Pick a different spelling, or clear cookies on the device that already used it.'
+        'Već attendaš, droljo.'
       );
     }
     throw err;
@@ -231,14 +230,21 @@ async function createAttendee(req: VercelRequest, res: VercelResponse, eventId: 
 
   const cookie = createAttendeeCookie(row.id, sessionToken);
   console.log('[events/attendees] inserted attendeeId=', row.id, 'cookieLen=', cookie.header.length);
-  res.setHeader('Set-Cookie', cookie.header);
 
   void trigger(eventId, 'attendee:new', { attendee: serializeAttendee(row) });
 
-  res.status(201).json({
+  // Atomically write status + Set-Cookie + body so Vercel's runtime can't
+  // overwrite Set-Cookie between setHeader and res.end (same fix as the
+  // admin OAuth callback).
+  const body = JSON.stringify({
     attendee: serializeAttendee(row),
     event: serializeEvent(event),
   });
+  res.writeHead(201, {
+    'Content-Type': 'application/json; charset=utf-8',
+    'Set-Cookie': cookie.header,
+  });
+  res.end(body);
 }
 
 // ---------- PATCH /api/events/:id/attendees/me ----------
@@ -286,13 +292,8 @@ async function attendeesMe(req: VercelRequest, res: VercelResponse, eventId: str
 // ---------- /api/events/:id/posts ----------
 
 async function listPosts(req: VercelRequest, res: VercelResponse, eventId: string): Promise<void> {
-  const session = await readAttendeeSession(req);
-  console.log('[events/posts] list, hasSession=', !!session);
-  if (!session) return unauthorized(res);
-  if (session.eventId !== eventId) {
-    return fail(res, 403, 'WRONG_EVENT', 'Wrong event for this session.');
-  }
-
+  // Public read: guests can view the feed, but only attendees can post.
+  console.log('[events/posts] list (public)');
   const limit = Math.min(50, Math.max(1, Number(req.query.limit) || 20));
   const cursor = typeof req.query.cursor === 'string' ? req.query.cursor : null;
 
@@ -372,19 +373,20 @@ async function pollCounts(eventId: string): Promise<{ eat_drink: number; drink: 
 }
 
 async function getPoll(req: VercelRequest, res: VercelResponse, eventId: string): Promise<void> {
+  // Public read: counts are visible to guests; "mine" is only populated for
+  // signed-in attendees.
   const session = await readAttendeeSession(req);
   console.log('[events/poll] get, hasSession=', !!session);
-  if (!session) return unauthorized(res);
-  if (session.eventId !== eventId) {
-    return fail(res, 403, 'WRONG_EVENT', 'Wrong event for this session.');
-  }
-
   const c = await pollCounts(eventId);
-  const mine = await queryOne<{ choice: 'eat_drink' | 'drink' | 'eat' }>(
-    `SELECT choice FROM poll_votes WHERE event_id = $1 AND attendee_id = $2`,
-    [eventId, session.attendeeId]
-  );
-  res.status(200).json({ ...c, mine: mine?.choice ?? null });
+  let mine: 'eat_drink' | 'drink' | 'eat' | null = null;
+  if (session && session.eventId === eventId) {
+    const row = await queryOne<{ choice: 'eat_drink' | 'drink' | 'eat' }>(
+      `SELECT choice FROM poll_votes WHERE event_id = $1 AND attendee_id = $2`,
+      [eventId, session.attendeeId]
+    );
+    mine = row?.choice ?? null;
+  }
+  res.status(200).json({ ...c, mine });
 }
 
 async function votePoll(req: VercelRequest, res: VercelResponse, eventId: string): Promise<void> {

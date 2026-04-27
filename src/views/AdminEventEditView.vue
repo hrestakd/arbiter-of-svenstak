@@ -36,7 +36,7 @@ async function save(payload: FormPayload): Promise<void> {
     } else if (props.eventId) {
       await api.patch(`/api/admin/events/${props.eventId}`, payload);
     }
-    await router.push({ name: 'admin-dashboard' });
+    await router.push({ name: 'admin-events' });
   } catch (e) {
     error.value = (e as Error).message;
   }
@@ -47,7 +47,7 @@ async function remove(): Promise<void> {
   if (!window.confirm('Delete this event and all its posts/comments/votes?')) return;
   try {
     await api.del(`/api/admin/events/${props.eventId}`);
-    await router.push({ name: 'admin-dashboard' });
+    await router.push({ name: 'admin-events' });
   } catch (e) {
     error.value = (e as Error).message;
   }
@@ -58,7 +58,7 @@ async function remove(): Promise<void> {
   <main class="min-h-screen p-4 sm:p-8 max-w-2xl mx-auto space-y-5">
     <header class="flex items-baseline justify-between">
       <h1 class="text-3xl">{{ mode === 'new' ? 'New event' : 'Edit event' }}</h1>
-      <RouterLink class="text-sm text-muted hover:text-ink" :to="{ name: 'admin-dashboard' }">
+      <RouterLink class="text-sm text-muted hover:text-ink" :to="{ name: 'admin-events' }">
         ← Back
       </RouterLink>
     </header>

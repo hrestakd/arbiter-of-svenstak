@@ -11,7 +11,6 @@ import { api } from '@/composables/useApi';
 import type { ApiError } from '@/composables/useApi';
 import { useEventStore, type EventDetail } from '@/stores/event';
 import { useSessionStore, type Attendance } from '@/stores/session';
-import { markAttendeeConfirmed } from '@/router';
 
 interface AttendeeResponse {
   attendee: {
@@ -28,6 +27,11 @@ interface AttendeeResponse {
 const router = useRouter();
 const eventStore = useEventStore();
 const session = useSessionStore();
+
+function skipGate(): void {
+  session.enterGuestMode();
+  void router.push({ name: 'event' });
+}
 
 const event = ref<EventDetail | null>(null);
 const loading = ref(true);
@@ -77,13 +81,15 @@ async function submit(): Promise<void> {
     );
     session.setAttendee(r.attendee);
     eventStore.setEvent(r.event);
-    markAttendeeConfirmed();
+    // If a stale guest_mode flag is set from an earlier Skip click, clear it
+    // now that we have a real attendee session.
+    if (session.guestMode) session.exitGuestMode();
     await router.push({ name: 'payment-tags' });
   } catch (e) {
     const err = e as ApiError;
     if (err.code === 'NAME_TAKEN') {
       error.value =
-        'Someone has already signed up with that name. Pick a different spelling, or clear cookies on the device that already used it.';
+        'Već attendaš, droljo.';
     } else if (err.code === 'VALIDATION_ERROR') {
       error.value = 'Please fill in your first and last name.';
     } else {
@@ -139,8 +145,8 @@ async function submit(): Promise<void> {
             <label
               v-for="opt in ATTENDANCE_OPTIONS"
               :key="opt.value"
-              class="flex items-center gap-2 rounded-lg border border-muted/30 px-3 py-2 cursor-pointer"
-              :class="form.attendance === opt.value ? 'border-accent bg-accent/10' : ''"
+              class="flex items-center gap-2 border-2 border-ink/40 px-3 py-2 cursor-pointer transition-all duration-75 hover:border-ink"
+              :class="form.attendance === opt.value ? 'border-accent bg-accent/15 shadow-pixel-sm' : ''"
             >
               <input v-model="form.attendance" type="radio" :value="opt.value" class="accent-accent" />
               <span>{{ opt.label }}</span>
@@ -154,8 +160,8 @@ async function submit(): Promise<void> {
             <label
               v-for="opt in PLUS_ONE_OPTIONS"
               :key="String(opt.value)"
-              class="flex items-center gap-2 rounded-lg border border-muted/30 px-3 py-2 cursor-pointer"
-              :class="form.plusOne === opt.value ? 'border-accent bg-accent/10' : ''"
+              class="flex items-center gap-2 border-2 border-ink/40 px-3 py-2 cursor-pointer transition-all duration-75 hover:border-ink"
+              :class="form.plusOne === opt.value ? 'border-accent bg-accent/15 shadow-pixel-sm' : ''"
             >
               <input v-model="form.plusOne" type="radio" :value="opt.value" class="accent-accent" />
               <span>{{ opt.label }}</span>
@@ -171,6 +177,16 @@ async function submit(): Promise<void> {
         </button>
 
         <p v-if="error" class="text-sm text-danger" role="alert">{{ error }}</p>
+
+        <div class="pt-2 text-center border-t border-muted/15 mt-2">
+          <button
+            type="button"
+            class="text-sm text-muted hover:text-ink"
+            @click="skipGate"
+          >
+            Samo Lurkam →
+          </button>
+        </div>
       </form>
     </div>
   </main>

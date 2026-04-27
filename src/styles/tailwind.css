@@ -5,27 +5,129 @@
 @layer base {
   html, body, #app { height: 100%; }
   body {
-    @apply bg-bg text-ink font-body antialiased;
-    background: rgb(var(--color-bg));
+    @apply bg-bg text-ink font-body;
+    font-size: 18px;
+    line-height: 1.5;
+    background-color: rgb(var(--color-bg));
+    background-image:
+      radial-gradient(circle at 20% 20%, rgb(var(--color-accent) / 0.18), transparent 40%),
+      radial-gradient(circle at 85% 80%, rgb(var(--color-accent-2) / 0.15), transparent 45%);
+    background-attachment: fixed;
   }
-  h1, h2, h3, h4 { @apply font-display tracking-tight; }
-  a { @apply text-accent underline-offset-2 hover:underline; }
+
+  /* Pixel-perfect text: defeat the browser's smoothing so retro fonts stay crisp. */
+  body, button, input, textarea, select {
+    -webkit-font-smoothing: none;
+    -moz-osx-font-smoothing: grayscale;
+    font-smooth: never;
+  }
+
+  h1, h2, h3, h4 {
+    @apply font-display uppercase tracking-wider;
+  }
+  h1 { @apply text-xl sm:text-2xl; line-height: 1.4; }
+  h2 { @apply text-sm sm:text-base; line-height: 1.6; }
+  h3 { @apply text-xs sm:text-sm; line-height: 1.6; }
+
+  a { @apply text-accent-2 underline-offset-2; text-decoration-thickness: 2px; }
+  a:hover { @apply text-accent; text-decoration: underline; }
+
+  /* CRT scanline overlay only on the dark "neon" theme. */
+  [data-theme='neon'] body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 100;
+    background: repeating-linear-gradient(
+      0deg,
+      rgba(0, 0, 0, 0.10) 0px,
+      rgba(0, 0, 0, 0.10) 1px,
+      transparent 1px,
+      transparent 3px
+    );
+    mix-blend-mode: multiply;
+  }
 }
 
 @layer components {
+  /* Buttons: chunky pixel border + hard offset shadow that "presses in" on click. */
   .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 font-medium transition-colors;
-    @apply bg-accent text-bg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply inline-flex items-center justify-center gap-2;
+    @apply px-5 py-2.5;
+    @apply font-display text-[11px] uppercase;
+    letter-spacing: 0.06em;
+    @apply bg-accent text-bg;
+    @apply border-2 border-ink;
+    box-shadow: 4px 4px 0 0 rgb(var(--color-shadow));
+    @apply transition-all duration-75;
   }
+  .btn:hover:not(:disabled) {
+    transform: translate(-2px, -2px);
+    box-shadow: 6px 6px 0 0 rgb(var(--color-shadow));
+  }
+  .btn:active:not(:disabled) {
+    transform: translate(2px, 2px);
+    box-shadow: 2px 2px 0 0 rgb(var(--color-shadow));
+  }
+  .btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    box-shadow: 2px 2px 0 0 rgb(var(--color-shadow) / 0.4);
+  }
+
   .btn-ghost {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 font-medium transition-colors;
-    @apply bg-surface text-ink hover:opacity-90;
+    @apply inline-flex items-center justify-center gap-2;
+    @apply px-4 py-2;
+    @apply font-display text-[10px] uppercase;
+    letter-spacing: 0.06em;
+    @apply bg-surface text-ink;
+    @apply border-2 border-ink;
+    box-shadow: 3px 3px 0 0 rgb(var(--color-shadow));
+    @apply transition-all duration-75;
   }
+  .btn-ghost:hover:not(:disabled) {
+    @apply text-accent;
+    transform: translate(-1px, -1px);
+    box-shadow: 4px 4px 0 0 rgb(var(--color-shadow));
+  }
+  .btn-ghost:active:not(:disabled) {
+    transform: translate(2px, 2px);
+    box-shadow: 1px 1px 0 0 rgb(var(--color-shadow));
+  }
+
+  /* Inputs: chunky border, hard focus shadow in accent. */
   .input {
-    @apply w-full rounded-lg border border-muted/40 bg-surface px-3 py-2 text-ink;
-    @apply focus:outline-none focus:ring-2 focus:ring-accent;
+    @apply w-full px-3 py-2;
+    @apply bg-surface text-ink;
+    @apply font-body text-lg;
+    @apply border-2 border-ink;
+    box-shadow: 2px 2px 0 0 rgb(var(--color-shadow) / 0.4);
+    @apply transition-all duration-75;
   }
+  .input:focus {
+    @apply outline-none;
+    border-color: rgb(var(--color-accent));
+    box-shadow: 4px 4px 0 0 rgb(var(--color-accent));
+  }
+  .input::placeholder { color: rgb(var(--color-muted)); }
+
+  /* Cards: panels with hard shadow. */
   .card {
-    @apply rounded-xl bg-surface p-4 shadow-sm border border-muted/10;
+    @apply bg-surface p-4;
+    @apply border-2 border-ink;
+    box-shadow: 4px 4px 0 0 rgb(var(--color-shadow));
   }
+
+  /* "Sparkle" headings — small pixel-style ornament before display headings. */
+  .sparkle::before {
+    content: '▸ ';
+    color: rgb(var(--color-accent-2));
+  }
+}
+
+/* Disable selection-on-pixel-art look feeling glitchy. */
+::selection {
+  background: rgb(var(--color-accent));
+  color: rgb(var(--color-bg));
 }

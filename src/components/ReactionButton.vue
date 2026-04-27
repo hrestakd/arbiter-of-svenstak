@@ -12,12 +12,14 @@ defineEmits<{ (e: 'click'): void }>();
 <template>
   <button
     type="button"
-    class="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-sm transition-colors"
-    :class="active ? 'bg-accent/15 text-accent' : 'text-muted hover:bg-bg/50'"
+    class="inline-flex items-center gap-1.5 px-2 py-0.5 text-sm font-display border-2 transition-all duration-75"
+    :class="active
+      ? 'bg-accent text-bg border-ink shadow-pixel-sm'
+      : 'bg-surface text-muted border-ink/30 hover:text-ink hover:border-ink'"
     :aria-label="`${label} — ${count}`"
     @click="$emit('click')"
   >
     <span aria-hidden="true">{{ icon }}</span>
-    <span>{{ count }}</span>
+    <span class="text-[12px]">{{ count }}</span>
   </button>
 </template>

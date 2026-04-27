@@ -1,24 +1,35 @@
-/* Theme tokens. Switch by setting <body data-theme="...">. */
+/**
+ * Pixel-anime themes. Switch via <body data-theme="...">.
+ *
+ * `classic` — daylight kawaii: pastel candy backdrop, ink-on-paper contrast,
+ *             chunky pixel shadows in deep purple. Pixelify Sans body.
+ * `neon`    — late-night arcade: deep navy CRT, hot magenta + cyan accents,
+ *             glowing pixel shadows, scanline overlay. VT323 body.
+ */
 
 :root,
 [data-theme='classic'] {
-  --color-bg: 245 242 235;        /* warm cream */
-  --color-surface: 255 252 247;
-  --color-ink: 28 25 23;
-  --color-muted: 120 113 108;
-  --color-accent: 192 75 36;      /* burnt orange */
-  --color-danger: 178 34 34;
-  --font-display: 'Playfair Display', 'Georgia', serif;
-  --font-body: 'Inter', system-ui, sans-serif;
+  --color-bg: 252 229 255;        /* cotton candy pink */
+  --color-surface: 255 255 255;
+  --color-ink: 45 27 61;          /* deep grape */
+  --color-muted: 160 140 175;
+  --color-accent: 255 111 181;    /* hot pink */
+  --color-accent-2: 78 205 196;   /* mint cyan */
+  --color-danger: 218 31 78;
+  --color-shadow: 45 27 61;       /* dark purple shadow */
+  --font-display: 'Press Start 2P', system-ui, monospace;
+  --font-body: 'Pixelify Sans', 'VT323', system-ui, sans-serif;
 }
 
 [data-theme='neon'] {
-  --color-bg: 8 8 12;
-  --color-surface: 22 22 32;
-  --color-ink: 240 240 250;
-  --color-muted: 140 140 160;
-  --color-accent: 217 70 239;     /* magenta */
-  --color-danger: 244 63 94;
-  --font-display: 'Space Grotesk', system-ui, sans-serif;
-  --font-body: 'Inter', system-ui, sans-serif;
+  --color-bg: 12 14 39;           /* deep navy night sky */
+  --color-surface: 26 31 74;      /* lighter navy */
+  --color-ink: 240 244 255;
+  --color-muted: 140 153 200;
+  --color-accent: 255 77 141;     /* magenta neon */
+  --color-accent-2: 93 238 255;   /* cyan neon */
+  --color-danger: 255 85 85;
+  --color-shadow: 255 77 141;     /* magenta glow */
+  --font-display: 'Press Start 2P', system-ui, monospace;
+  --font-body: 'VT323', 'Courier New', monospace;
 }
