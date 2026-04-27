@@ -1,8 +1,8 @@
 # arbiter-of-svenstak
 
-Self-hosted yearly birthday-event page — replacement for Facebook Events.
+Self-hosted event page — replacement for Facebook Events.
 
-A Vue 3 SPA on Vercel with a name-based gate, event details, meal poll, and live activity feed. Two organizers (Domagoj + Sven) can sign in with GitHub OAuth to create and edit events.
+A Vue 3 SPA on Vercel with a name-based gate, event details, meal poll, and live activity feed. Organizers can sign in with GitHub OAuth to create and edit events.
 
 ## Stack
 
