@@ -31,12 +31,16 @@ function loadGuestMode(): boolean {
   return window.localStorage.getItem(GUEST_KEY) === '1';
 }
 
+// Module-level (singleton with the store): concurrent callers of probe()
+// share this in-flight promise so the second caller awaits the first
+// instead of returning immediately.
+let probeInFlight: Promise<void> | null = null;
+
 export const useSessionStore = defineStore('session', () => {
   const attendee = ref<AttendeeSession | null>(null);
   const admin = ref<AdminSession | null>(null);
   const guestMode = ref(loadGuestMode());
   const probed = ref(false);
-  const probing = ref(false);
 
   const isAdmin = computed(() => admin.value !== null);
   const isAttendee = computed(() => attendee.value !== null);
@@ -46,32 +50,37 @@ export const useSessionStore = defineStore('session', () => {
   const canWrite = computed(() => isAttendee.value);
 
   async function probe(): Promise<void> {
-    if (probed.value || probing.value) return;
-    probing.value = true;
-    try {
-      const me = await api
-        .get<{
-          admin: { username: string } | null;
-          attendee: AttendeeSession | null;
-        }>('/api/auth/me')
-        .catch((e: ApiError) => {
-          // Network or unexpected error — don't crash the boot, just leave
-          // both sessions null so guards send the user to the gate.
-          console.warn('[session] probe failed', e.status, e.code);
-          return { admin: null, attendee: null };
-        });
-      admin.value = me.admin;
-      attendee.value = me.attendee;
-      // Drop a stale guest flag if we now have a real session (attendee or
-      // admin). The flag was useful when cookies were broken, but persists in
-      // localStorage forever otherwise and confuses canView semantics.
-      if ((me.attendee || me.admin) && guestMode.value) {
-        exitGuestMode();
+    if (probed.value) return;
+    if (probeInFlight) return probeInFlight;
+
+    probeInFlight = (async () => {
+      try {
+        const me = await api
+          .get<{
+            admin: { username: string } | null;
+            attendee: AttendeeSession | null;
+          }>('/api/auth/me')
+          .catch((e: ApiError) => {
+            // Network or unexpected error — don't crash the boot, just leave
+            // both sessions null so guards send the user to the gate.
+            console.warn('[session] probe failed', e.status, e.code);
+            return { admin: null, attendee: null };
+          });
+        admin.value = me.admin;
+        attendee.value = me.attendee;
+        // Drop a stale guest flag if we now have a real session (attendee or
+        // admin). The flag was useful when cookies were broken, but persists
+        // in localStorage forever otherwise and confuses canView semantics.
+        if ((me.attendee || me.admin) && guestMode.value) {
+          exitGuestMode();
+        }
+      } finally {
+        probed.value = true;
+        probeInFlight = null;
       }
-    } finally {
-      probing.value = false;
-      probed.value = true;
-    }
+    })();
+
+    return probeInFlight;
   }
 
   function enterGuestMode(): void {
@@ -106,7 +115,6 @@ export const useSessionStore = defineStore('session', () => {
     admin,
     guestMode,
     probed,
-    probing,
     isAdmin,
     isAttendee,
     canView,
