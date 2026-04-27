@@ -1,0 +1,17 @@
+{
+  "env": {
+    "ECC_DISABLED_HOOKS": "pre:edit-write:gateguard-fact-force,pre:bash:gateguard-fact-force"
+  },
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "Bash(command -v node)",
+      "Bash(where.exe node *)",
+      "PowerShell(Get-Command *)",
+      "Skill(update-config)",
+      "Bash(bash *)",
+      "PowerShell($user = [Environment]::GetEnvironmentVariable\\('PATH','User'\\); $machine = [Environment]::GetEnvironmentVariable\\('PATH','Machine'\\); Write-Output \"USER PATH:\"; \\($user -split ';'\\) | Where-Object { $_ -match 'node|Node' }; Write-Output \"---\"; Write-Output \"MACHINE PATH:\"; \\($machine -split ';'\\) | Where-Object { $_ -match 'node|Node' })",
+      "Bash(npm run *)"
+    ]
+  }
+}

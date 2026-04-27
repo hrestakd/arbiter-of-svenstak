@@ -1,0 +1,17 @@
+node_modules
+dist
+dist-ssr
+*.local
+.env
+.env.local
+.env.*.local
+.vercel
+.DS_Store
+*.log
+coverage
+.idea
+.vscode
+!.vscode/extensions.json
+
+.vercel
+.env*.local
