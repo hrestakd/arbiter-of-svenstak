@@ -63,10 +63,5 @@ const tiles: Tile[] = [
       </RouterLink>
     </nav>
 
-    <footer class="text-center pt-4">
-      <RouterLink to="/event" class="text-sm text-muted hover:text-ink font-body">
-        ← Back to the public event
-      </RouterLink>
-    </footer>
   </main>
 </template>

@@ -7,11 +7,15 @@
  * Visible on every route via App.vue.
  */
 
+import { computed } from 'vue';
 import { useSessionStore } from '@/stores/session';
-import { useRouter } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 
 const session = useSessionStore();
 const router = useRouter();
+const route = useRoute();
+
+const onAdminRoute = computed(() => route.path.startsWith('/admin'));
 
 async function logout(): Promise<void> {
   await session.logoutAdmin();
@@ -24,7 +28,16 @@ async function logout(): Promise<void> {
 </script>
 
 <template>
-  <div class="fixed bottom-4 right-4 z-50 print:hidden">
+  <div class="fixed bottom-4 right-4 z-50 print:hidden flex flex-col items-end gap-2">
+    <RouterLink
+      v-if="session.isAdmin"
+      :to="onAdminRoute ? { name: 'event' } : { name: 'admin-dashboard' }"
+      class="font-display text-[10px] uppercase tracking-wider bg-surface text-ink hover:text-accent border-2 border-ink shadow-pixel-sm px-3 py-2 hover:-translate-x-0.5 hover:-translate-y-0.5 active:translate-x-0.5 active:translate-y-0.5 transition-all duration-75"
+      :title="onAdminRoute ? 'Public event' : 'Admin dashboard'"
+    >
+      {{ onAdminRoute ? 'Public' : 'Admin' }}
+    </RouterLink>
+
     <a
       v-if="!session.isAdmin"
       href="/api/auth/github"

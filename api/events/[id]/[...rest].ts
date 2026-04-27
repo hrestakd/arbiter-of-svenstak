@@ -30,6 +30,7 @@ import {
   randomToken,
   readAttendeeSession,
 } from '../../_lib/session.js';
+import { pickRandomEmoji } from '../../_lib/emoji.js';
 import {
   AttendeeCreate,
   AttendeePatch,
@@ -60,6 +61,7 @@ interface AttendeeRow {
   last_name: string;
   attendance: 'attending' | 'maybe' | 'no_go';
   plus_one: boolean;
+  emoji: string;
   created_at: string;
 }
 
@@ -71,6 +73,7 @@ interface PostRow {
   created_at: string;
   first_name: string;
   last_name: string;
+  emoji: string;
   like_count: number | string;
   dislike_count: number | string;
   comment_count: number | string;
@@ -84,7 +87,7 @@ interface CountRow {
 const POSTS_SQL = `
   SELECT
     p.id, p.event_id, p.attendee_id, p.body, p.created_at,
-    a.first_name, a.last_name,
+    a.first_name, a.last_name, a.emoji,
     COALESCE(SUM(CASE WHEN r.kind = 'like'    THEN 1 ELSE 0 END), 0) AS like_count,
     COALESCE(SUM(CASE WHEN r.kind = 'dislike' THEN 1 ELSE 0 END), 0) AS dislike_count,
     (SELECT count(*) FROM comments c WHERE c.post_id = p.id)        AS comment_count
@@ -101,6 +104,7 @@ function serializeAttendee(r: AttendeeRow) {
     lastName: r.last_name,
     attendance: r.attendance,
     plusOne: r.plus_one,
+    emoji: r.emoji,
     createdAt: r.created_at,
   };
 }
@@ -112,7 +116,7 @@ function serializePost(r: PostRow) {
     attendeeId: r.attendee_id,
     body: r.body,
     createdAt: r.created_at,
-    author: { firstName: r.first_name, lastName: r.last_name },
+    author: { firstName: r.first_name, lastName: r.last_name, emoji: r.emoji },
     likeCount: Number(r.like_count),
     dislikeCount: Number(r.dislike_count),
     commentCount: Number(r.comment_count),
@@ -177,7 +181,7 @@ async function listAttendees(_req: VercelRequest, res: VercelResponse, eventId: 
   // Public read: guests (skip-the-gate) and attendees both see the list.
   console.log('[events/attendees] list (public)');
   const rows = await query<AttendeeRow>(
-    `SELECT id, event_id, first_name, last_name, attendance, plus_one, created_at
+    `SELECT id, event_id, first_name, last_name, attendance, plus_one, emoji, created_at
        FROM attendees
       WHERE event_id = $1
       ORDER BY created_at ASC`,
@@ -206,13 +210,14 @@ async function createAttendee(req: VercelRequest, res: VercelResponse, eventId: 
   console.log('[events/attendees] inserting', firstName, lastName, attendance, 'plusOne=', plusOne);
 
   const sessionToken = randomToken(32);
+  const emoji = pickRandomEmoji();
   let row: AttendeeRow;
   try {
     const inserted = await queryOne<AttendeeRow>(
-      `INSERT INTO attendees (event_id, first_name, last_name, attendance, plus_one, session_token)
-       VALUES ($1, $2, $3, $4, $5, $6)
-       RETURNING id, event_id, first_name, last_name, attendance, plus_one, created_at`,
-      [eventId, firstName, lastName, attendance, plusOne, sessionToken]
+      `INSERT INTO attendees (event_id, first_name, last_name, attendance, plus_one, session_token, emoji)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
+       RETURNING id, event_id, first_name, last_name, attendance, plus_one, emoji, created_at`,
+      [eventId, firstName, lastName, attendance, plusOne, sessionToken, emoji]
     );
     if (!inserted) throw new Error('Insert returned no row');
     row = inserted;
@@ -279,7 +284,7 @@ async function attendeesMe(req: VercelRequest, res: VercelResponse, eventId: str
   const row = await queryOne<AttendeeRow>(
     `UPDATE attendees SET ${sets.join(', ')}
       WHERE id = $${params.length}
-      RETURNING id, event_id, first_name, last_name, attendance, plus_one, created_at`,
+      RETURNING id, event_id, first_name, last_name, attendance, plus_one, emoji, created_at`,
     params
   );
   if (!row) return unauthorized(res);
@@ -307,7 +312,7 @@ async function listPosts(req: VercelRequest, res: VercelResponse, eventId: strin
   const rows = await query<PostRow>(
     `${POSTS_SQL}
        ${where}
-       GROUP BY p.id, a.first_name, a.last_name
+       GROUP BY p.id, a.first_name, a.last_name, a.emoji
        ORDER BY p.created_at DESC
        LIMIT $${params.length}`,
     params
@@ -347,7 +352,7 @@ async function createPost(req: VercelRequest, res: VercelResponse, eventId: stri
   const row = await queryOne<PostRow>(
     `${POSTS_SQL}
       WHERE p.id = $1
-      GROUP BY p.id, a.first_name, a.last_name`,
+      GROUP BY p.id, a.first_name, a.last_name, a.emoji`,
     [inserted.id]
   );
   if (!row) throw new Error('Post vanished after insert');

@@ -11,6 +11,7 @@ import type { Attendance } from './session';
 export interface Author {
   firstName: string;
   lastName: string;
+  emoji: string;
 }
 
 export interface Post {
@@ -41,6 +42,7 @@ export interface Attendee {
   lastName: string;
   attendance: Attendance;
   plusOne: boolean;
+  emoji: string;
   createdAt: string;
 }
 

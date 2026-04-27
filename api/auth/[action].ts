@@ -167,6 +167,7 @@ async function me(req: VercelRequest, res: VercelResponse): Promise<void> {
           lastName: attendee.lastName,
           attendance: attendee.attendance,
           plusOne: attendee.plusOne,
+          emoji: attendee.emoji,
         }
       : null,
   });

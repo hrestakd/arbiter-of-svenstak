@@ -27,6 +27,7 @@ interface AttendeeRow {
   last_name: string;
   attendance: 'attending' | 'maybe' | 'no_go';
   plus_one: boolean;
+  emoji: string;
   created_at: string;
 }
 
@@ -38,6 +39,7 @@ function serializeAttendee(r: AttendeeRow) {
     lastName: r.last_name,
     attendance: r.attendance,
     plusOne: r.plus_one,
+    emoji: r.emoji,
     createdAt: r.created_at,
   };
 }
@@ -77,7 +79,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     const row = await queryOne<AttendeeRow>(
       `UPDATE attendees SET ${sets.join(', ')}
         WHERE id = $${params.length}
-        RETURNING id, event_id, first_name, last_name, attendance, plus_one, created_at`,
+        RETURNING id, event_id, first_name, last_name, attendance, plus_one, emoji, created_at`,
       params
     );
     if (!row) return unauthorized(res);

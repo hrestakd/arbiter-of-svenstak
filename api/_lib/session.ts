@@ -111,6 +111,7 @@ export interface AttendeeSession {
   lastName: string;
   attendance: 'attending' | 'maybe' | 'no_go';
   plusOne: boolean;
+  emoji: string;
 }
 
 export function createAttendeeCookie(attendeeId: string, sessionToken: string): { header: string; raw: string } {
@@ -142,8 +143,9 @@ export async function readAttendeeSession(
     last_name: string;
     attendance: AttendeeSession['attendance'];
     plus_one: boolean;
+    emoji: string;
   }>(
-    `SELECT id, event_id, first_name, last_name, attendance, plus_one
+    `SELECT id, event_id, first_name, last_name, attendance, plus_one, emoji
        FROM attendees
       WHERE id = $1 AND session_token = $2`,
     [attendeeId, sessionToken]
@@ -156,6 +158,7 @@ export async function readAttendeeSession(
     lastName: row.last_name,
     attendance: row.attendance,
     plusOne: row.plus_one,
+    emoji: row.emoji,
   };
 }
 

@@ -18,6 +18,7 @@ export interface AttendeeSession {
   lastName: string;
   attendance: Attendance;
   plusOne: boolean;
+  emoji: string;
 }
 
 export interface AdminSession {

@@ -38,7 +38,9 @@ async function submit(): Promise<void> {
   <div class="space-y-3 pt-3 border-t border-muted/20">
     <ul v-if="comments.length" class="space-y-2">
       <li v-for="c in comments" :key="c.id" class="text-sm">
-        <span class="font-medium">{{ c.author.firstName }} {{ c.author.lastName }}</span>
+        <span class="font-medium">
+          <span aria-hidden="true" class="mr-1">{{ c.author.emoji }}</span>{{ c.author.firstName }} {{ c.author.lastName }}
+        </span>
         <span class="text-muted text-xs ml-2">{{ useTimeAgo(c.createdAt).value }}</span>
         <p class="mt-0.5 whitespace-pre-wrap">{{ c.body }}</p>
       </li>

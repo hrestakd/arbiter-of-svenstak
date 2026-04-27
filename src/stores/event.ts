@@ -35,6 +35,7 @@ export interface Attendee {
   lastName: string;
   attendance: Attendance;
   plusOne: boolean;
+  emoji: string;
   createdAt: string;
 }
 
@@ -145,6 +146,7 @@ export const useEventStore = defineStore('event', () => {
         lastName: updated.lastName,
         attendance: updated.attendance,
         plusOne: updated.plusOne,
+        emoji: updated.emoji,
       });
     }
   }

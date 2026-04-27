@@ -19,7 +19,9 @@ async function react(kind: 'like' | 'dislike'): Promise<void> {
 <template>
   <article class="card space-y-3">
     <header class="flex items-baseline justify-between">
-      <span class="font-semibold">{{ post.author.firstName }} {{ post.author.lastName }}</span>
+      <span class="font-semibold">
+        <span aria-hidden="true" class="mr-1">{{ post.author.emoji }}</span>{{ post.author.firstName }} {{ post.author.lastName }}
+      </span>
       <span class="text-sm text-muted">{{ useTimeAgo(post.createdAt).value }}</span>
     </header>
     <p class="whitespace-pre-wrap">{{ post.body }}</p>

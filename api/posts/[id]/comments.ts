@@ -27,6 +27,7 @@ interface CommentRow {
   created_at: string;
   first_name: string;
   last_name: string;
+  emoji: string;
 }
 
 function serializeComment(r: CommentRow) {
@@ -36,7 +37,7 @@ function serializeComment(r: CommentRow) {
     attendeeId: r.attendee_id,
     body: r.body,
     createdAt: r.created_at,
-    author: { firstName: r.first_name, lastName: r.last_name },
+    author: { firstName: r.first_name, lastName: r.last_name, emoji: r.emoji },
   };
 }
 
@@ -56,7 +57,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       // Public read.
       const rows = await query<CommentRow>(
         `SELECT c.id, c.post_id, c.attendee_id, c.body, c.created_at,
-                a.first_name, a.last_name
+                a.first_name, a.last_name, a.emoji
            FROM comments c
            JOIN attendees a ON a.id = c.attendee_id
           WHERE c.post_id = $1
@@ -92,7 +93,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
 
       const row = await queryOne<CommentRow>(
         `SELECT c.id, c.post_id, c.attendee_id, c.body, c.created_at,
-                a.first_name, a.last_name
+                a.first_name, a.last_name, a.emoji
            FROM comments c
            JOIN attendees a ON a.id = c.attendee_id
           WHERE c.id = $1`,

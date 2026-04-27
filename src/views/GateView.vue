@@ -20,6 +20,7 @@ interface AttendeeResponse {
     lastName: string;
     attendance: Attendance;
     plusOne: boolean;
+    emoji: string;
   };
   event: EventDetail;
 }
