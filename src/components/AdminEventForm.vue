@@ -19,6 +19,7 @@ export interface FormPayload {
   theme: string | null;
   description: string;
   location: string;
+  locationMapUrl: string | null;
   startsAt: string;
   headerImageUrl: string | null;
   paymentTags: PaymentTag[];
@@ -33,6 +34,7 @@ const form = reactive<FormPayload>({
   theme: 'classic',
   description: '',
   location: '',
+  locationMapUrl: null,
   startsAt: '',
   headerImageUrl: null,
   paymentTags: [
@@ -44,9 +46,55 @@ const form = reactive<FormPayload>({
   isCurrent: true,
 });
 
+const mapInput = ref('');
+const mapError = ref<string | null>(null);
+
 const submitting = ref(false);
 const uploading = ref(false);
 const uploadError = ref<string | null>(null);
+
+/**
+ * Accepts either a raw embed URL or the full <iframe …> snippet that
+ * Google's "Embed a map" dialog produces, and returns just the embed URL.
+ * Anything that isn't a https://www.google.com/maps/embed URL is rejected.
+ */
+function extractMapEmbedUrl(raw: string): string | null {
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
+  let candidate = trimmed;
+  const srcMatch = trimmed.match(/<iframe[^>]*\ssrc\s*=\s*["']([^"']+)["']/i);
+  if (srcMatch) candidate = srcMatch[1];
+  try {
+    const u = new URL(candidate);
+    if (u.protocol !== 'https:') return null;
+    if (u.hostname !== 'www.google.com') return null;
+    if (u.pathname !== '/maps/embed') return null;
+    return u.toString();
+  } catch {
+    return null;
+  }
+}
+
+function onMapInput(): void {
+  mapError.value = null;
+  if (!mapInput.value.trim()) {
+    form.locationMapUrl = null;
+    return;
+  }
+  const url = extractMapEmbedUrl(mapInput.value);
+  if (!url) {
+    form.locationMapUrl = null;
+    mapError.value = 'Paste a Google Maps "Embed a map" iframe or its src URL.';
+    return;
+  }
+  form.locationMapUrl = url;
+}
+
+function clearMap(): void {
+  mapInput.value = '';
+  mapError.value = null;
+  form.locationMapUrl = null;
+}
 
 watch(
   () => props.initial,
@@ -57,6 +105,8 @@ watch(
     form.theme = e.theme ?? 'classic';
     form.description = e.description;
     form.location = e.location;
+    form.locationMapUrl = e.locationMapUrl;
+    mapInput.value = e.locationMapUrl ?? '';
     form.startsAt = toLocalInput(e.startsAt);
     form.headerImageUrl = e.headerImageUrl;
     form.paymentTags = (e.paymentTags ?? []).map((t) => ({ ...t }));
@@ -153,6 +203,43 @@ function submit(): void {
         <input v-model="form.location" class="input" type="text" maxlength="500" />
       </label>
     </div>
+
+    <fieldset class="space-y-2">
+      <legend class="text-sm text-muted">Map embed</legend>
+      <p class="text-xs text-muted">
+        Open Google Maps → <em>Share</em> → <em>Embed a map</em> → copy. Paste the full
+        <code>&lt;iframe&gt;</code> snippet or just its <code>src</code> URL.
+      </p>
+      <textarea
+        v-model="mapInput"
+        class="input font-mono text-xs"
+        rows="3"
+        maxlength="2000"
+        placeholder='<iframe src="https://www.google.com/maps/embed?pb=…"></iframe>'
+        @input="onMapInput"
+        @blur="onMapInput"
+      />
+      <div class="flex items-center gap-2">
+        <button v-if="mapInput" type="button" class="btn-ghost text-xs" @click="clearMap">
+          Clear
+        </button>
+        <span v-if="mapError" class="text-xs text-danger">{{ mapError }}</span>
+        <span v-else-if="form.locationMapUrl" class="text-xs text-accent">Looks good ✓</span>
+      </div>
+      <div
+        v-if="form.locationMapUrl"
+        class="rounded-lg overflow-hidden border border-muted/30"
+      >
+        <iframe
+          :src="form.locationMapUrl"
+          class="w-full aspect-[16/9] block"
+          loading="lazy"
+          referrerpolicy="no-referrer-when-downgrade"
+          allowfullscreen
+          title="Map preview"
+        />
+      </div>
+    </fieldset>
 
     <label class="space-y-1 block">
       <span class="text-sm text-muted">Description</span>

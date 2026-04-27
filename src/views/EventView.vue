@@ -86,6 +86,19 @@ const formattedDate = computed(() => {
           </p>
           <p v-if="isArchive" class="text-sm text-muted pt-2">Archive view — read only.</p>
         </div>
+        <div
+          v-if="store.event.locationMapUrl"
+          class="border-t border-muted/20"
+        >
+          <iframe
+            :src="store.event.locationMapUrl"
+            class="w-full aspect-[16/9] block"
+            loading="lazy"
+            referrerpolicy="no-referrer-when-downgrade"
+            allowfullscreen
+            :title="`Map: ${store.event.location || store.event.title}`"
+          />
+        </div>
       </article>
 
       <AttendeeList :attendees="store.attendees" />

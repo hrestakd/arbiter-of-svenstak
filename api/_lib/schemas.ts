@@ -49,12 +49,38 @@ export const PollVote = z.object({
   choice: MealChoice,
 });
 
+/**
+ * The embed URL Google produces in "Share → Embed a map". We accept only this
+ * exact origin/path so a malicious admin can't paste a hostile URL that we'd
+ * render inside an iframe.
+ */
+const GoogleMapsEmbedUrl = z
+  .string()
+  .url()
+  .max(2000)
+  .refine(
+    (raw) => {
+      try {
+        const u = new URL(raw);
+        return (
+          u.protocol === 'https:' &&
+          u.hostname === 'www.google.com' &&
+          u.pathname === '/maps/embed'
+        );
+      } catch {
+        return false;
+      }
+    },
+    { message: 'Must be a https://www.google.com/maps/embed URL.' }
+  );
+
 export const EventUpsert = z.object({
   year: z.number().int().min(2000).max(2100),
   title: z.string().trim().min(1).max(200),
   theme: z.string().trim().max(80).optional().nullable(),
   description: z.string().max(10_000).default(''),
   location: z.string().max(500).default(''),
+  locationMapUrl: GoogleMapsEmbedUrl.optional().nullable(),
   startsAt: z.string().datetime(),
   headerImageUrl: z.string().url().optional().nullable(),
   paymentTags: z.array(PaymentTag).default([]),
