@@ -52,6 +52,7 @@ const mapError = ref<string | null>(null);
 const submitting = ref(false);
 const uploading = ref(false);
 const uploadError = ref<string | null>(null);
+const fileInput = ref<HTMLInputElement | null>(null);
 
 /**
  * Accepts either a raw embed URL or the full <iframe …> snippet that
@@ -137,7 +138,8 @@ function removeTag(idx: number): void {
 }
 
 async function onPickFile(ev: Event): Promise<void> {
-  const file = (ev.target as HTMLInputElement).files?.[0];
+  const input = ev.target as HTMLInputElement;
+  const file = input.files?.[0];
   if (!file) return;
   uploading.value = true;
   uploadError.value = null;
@@ -151,7 +153,18 @@ async function onPickFile(ev: Event): Promise<void> {
     uploadError.value = (e as Error).message;
   } finally {
     uploading.value = false;
+    input.value = '';
   }
+}
+
+function removeImage(): void {
+  form.headerImageUrl = null;
+  uploadError.value = null;
+  if (fileInput.value) fileInput.value.value = '';
+}
+
+function pickFile(): void {
+  fileInput.value?.click();
 }
 
 function submit(): void {
@@ -251,7 +264,27 @@ function submit(): void {
       <div v-if="form.headerImageUrl" class="rounded-lg overflow-hidden border border-muted/30">
         <img :src="form.headerImageUrl" alt="" class="w-full aspect-[2/1] object-cover" />
       </div>
-      <input type="file" accept="image/*" :disabled="uploading" @change="onPickFile" />
+      <input
+        ref="fileInput"
+        type="file"
+        accept="image/*"
+        class="hidden"
+        :disabled="uploading"
+        @change="onPickFile"
+      />
+      <div class="flex flex-wrap items-center gap-2">
+        <button type="button" class="btn-ghost text-sm" :disabled="uploading" @click="pickFile">
+          {{ form.headerImageUrl ? 'Replace image' : 'Choose image' }}
+        </button>
+        <button
+          v-if="form.headerImageUrl && !uploading"
+          type="button"
+          class="btn-ghost text-sm text-danger"
+          @click="removeImage"
+        >
+          Remove
+        </button>
+      </div>
       <p v-if="uploading" class="text-sm text-muted">Uploading…</p>
       <p v-if="uploadError" class="text-sm text-danger">{{ uploadError }}</p>
     </fieldset>

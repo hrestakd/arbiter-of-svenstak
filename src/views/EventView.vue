@@ -77,7 +77,15 @@ const formattedDate = computed(() => {
 </script>
 
 <template>
-  <main class="min-h-screen p-4 sm:p-8 max-w-5xl mx-auto space-y-5">
+  <div class="min-h-screen">
+    <img
+      v-if="store.event?.headerImageUrl"
+      :src="store.event.headerImageUrl"
+      :alt="store.event.title"
+      class="w-full aspect-[2/1] sm:aspect-[3/1] lg:aspect-[16/5] max-h-[70vh] object-cover block"
+    />
+
+    <main class="p-4 sm:p-8 mx-auto space-y-5 max-w-5xl xl:max-w-[84rem]">
     <p v-if="loading" class="text-center text-muted">Loading…</p>
     <p v-else-if="error" class="card text-center text-danger">{{ error }}</p>
 
@@ -135,7 +143,7 @@ const formattedDate = computed(() => {
 
         <PaymentTagsCard
           :tags="store.event.paymentTags"
-          class="lg:sticky lg:top-4"
+          class="xl:sticky xl:top-4 xl:max-h-[calc(100vh-2rem)] xl:overflow-y-auto"
         />
       </div>
 
@@ -153,5 +161,6 @@ const formattedDate = computed(() => {
         </div>
       </div>
     </template>
-  </main>
+    </main>
+  </div>
 </template>
