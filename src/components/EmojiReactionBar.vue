@@ -7,7 +7,6 @@ const props = defineProps<{
   myEmojis: string[];
   readonly?: boolean;
   size?: 'sm' | 'md';
-  hidePicker?: boolean;
 }>();
 
 const emit = defineEmits<{ (e: 'react', emoji: string): void }>();
@@ -36,38 +35,38 @@ async function toggle(emoji: string): Promise<void> {
 
 const btnSize = computed(() =>
   props.size === 'sm'
-    ? 'text-xs px-1.5 py-0.5'
-    : 'text-sm px-2 py-0.5'
+    ? 'text-xs px-1.5 py-0.5 gap-1'
+    : 'text-sm px-2 py-0.5 gap-1.5'
 );
 </script>
 
 <template>
-  <div class="flex flex-wrap items-center gap-1">
+  <div class="inline-flex flex-wrap items-center gap-1">
     <button
       v-for="emoji in visibleReactions"
       :key="emoji"
       type="button"
       :disabled="readonly || submitting === emoji"
       :class="[
-        'rounded-full border transition disabled:opacity-50',
+        'inline-flex items-center font-display border-2 transition-all duration-75 disabled:opacity-50',
         btnSize,
         mySet.has(emoji)
-          ? 'bg-accent/20 border-accent text-ink'
-          : 'bg-transparent border-muted/30 text-muted hover:border-ink/50 hover:text-ink',
+          ? 'bg-accent text-bg border-ink shadow-pixel-sm'
+          : 'bg-surface text-muted border-ink/30 hover:text-ink hover:border-ink',
       ]"
       :title="mySet.has(emoji) ? 'Remove reaction' : 'Add reaction'"
       @click="toggle(emoji)"
     >
-      <span class="mr-1">{{ emoji }}</span>
-      <span class="font-mono">{{ emojiCounts[emoji] ?? 0 }}</span>
+      <span aria-hidden="true">{{ emoji }}</span>
+      <span class="text-[12px] font-mono">{{ emojiCounts[emoji] ?? 0 }}</span>
     </button>
 
-    <template v-if="!hidePicker">
+    <div v-if="!readonly" class="relative inline-flex">
       <button
-        v-if="!readonly"
         type="button"
         :class="[
-          'rounded-full border border-muted/30 text-muted hover:border-ink/50 hover:text-ink',
+          'inline-flex items-center font-display border-2 transition-all duration-75',
+          'bg-surface text-muted border-ink/30 hover:text-ink hover:border-ink',
           btnSize,
         ]"
         :aria-expanded="showPicker"
@@ -76,10 +75,9 @@ const btnSize = computed(() =>
       >
         ＋
       </button>
-
       <div
-        v-if="showPicker && !readonly"
-        class="flex flex-wrap items-center gap-1 ml-1 px-1 py-0.5 rounded border border-muted/30 bg-paper"
+        v-if="showPicker"
+        class="absolute z-10 top-full right-0 mt-1 flex flex-wrap items-center gap-1 px-2 py-1 border-2 border-ink/40 bg-paper shadow-pixel-sm max-w-[16rem]"
       >
         <button
           v-for="emoji in REACTION_EMOJIS"
@@ -87,14 +85,14 @@ const btnSize = computed(() =>
           type="button"
           :disabled="submitting === emoji"
           :class="[
-            'rounded hover:bg-accent/20 disabled:opacity-50 px-1',
-            mySet.has(emoji) ? 'bg-accent/10' : '',
+            'px-1 text-base hover:bg-accent/20 disabled:opacity-50',
+            mySet.has(emoji) ? 'bg-accent/20' : '',
           ]"
           @click="toggle(emoji)"
         >
           {{ emoji }}
         </button>
       </div>
-    </template>
+    </div>
   </div>
 </template>

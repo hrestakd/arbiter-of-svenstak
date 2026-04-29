@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
-import { useFeedStore, type Post, REACTION_EMOJIS } from '@/stores/feed';
+import { ref } from 'vue';
+import { useFeedStore, type Post } from '@/stores/feed';
 import { useSessionStore } from '@/stores/session';
 import { useTimeAgo } from '@/composables/useTimeAgo';
 import ReactionButton from './ReactionButton.vue';
@@ -12,10 +12,7 @@ const feed = useFeedStore();
 const session = useSessionStore();
 
 const showComments = ref(false);
-const showPicker = ref(false);
 const deleting = ref(false);
-
-const mySet = computed(() => new Set(props.post.myEmojis));
 
 async function react(kind: 'like' | 'dislike'): Promise<void> {
   if (props.readonly) return;
@@ -25,11 +22,6 @@ async function react(kind: 'like' | 'dislike'): Promise<void> {
 async function reactEmoji(emoji: string): Promise<void> {
   if (props.readonly) return;
   await feed.reactPostEmoji(props.post.id, emoji);
-}
-
-async function pickEmoji(emoji: string): Promise<void> {
-  await reactEmoji(emoji);
-  showPicker.value = false;
 }
 
 async function deletePost(): Promise<void> {
@@ -81,38 +73,15 @@ async function deletePost(): Promise<void> {
         class="max-h-96 w-auto rounded border border-muted/20"
       />
     </a>
-    <footer class="flex items-center gap-2 relative">
+    <footer class="flex flex-wrap items-center gap-2">
       <ReactionButton icon="👍" label="Like" :count="post.likeCount" @click="react('like')" />
       <ReactionButton icon="👎" label="Dislike" :count="post.dislikeCount" @click="react('dislike')" />
-      <button
-        v-if="!readonly"
-        type="button"
-        class="rounded-full border border-muted/30 text-muted hover:border-ink/50 hover:text-ink text-sm px-2 py-0.5"
-        :aria-expanded="showPicker"
-        title="Add reaction"
-        @click="showPicker = !showPicker"
-      >
-        ＋
-      </button>
-
-      <div
-        v-if="showPicker && !readonly"
-        class="absolute left-0 top-full mt-1 z-10 flex flex-wrap items-center gap-1 px-1 py-0.5 rounded border border-muted/30 bg-paper shadow"
-      >
-        <button
-          v-for="emoji in REACTION_EMOJIS"
-          :key="emoji"
-          type="button"
-          :class="[
-            'rounded hover:bg-accent/20 px-1',
-            mySet.has(emoji) ? 'bg-accent/10' : '',
-          ]"
-          @click="pickEmoji(emoji)"
-        >
-          {{ emoji }}
-        </button>
-      </div>
-
+      <EmojiReactionBar
+        :emoji-counts="post.emojiCounts"
+        :my-emojis="post.myEmojis"
+        :readonly="readonly"
+        @react="reactEmoji"
+      />
       <button
         type="button"
         class="ml-auto text-sm text-muted hover:text-ink"
@@ -121,13 +90,6 @@ async function deletePost(): Promise<void> {
         💬 {{ post.commentCount }} {{ post.commentCount === 1 ? 'comment' : 'comments' }}
       </button>
     </footer>
-    <EmojiReactionBar
-      hide-picker
-      :emoji-counts="post.emojiCounts"
-      :my-emojis="post.myEmojis"
-      :readonly="readonly"
-      @react="reactEmoji"
-    />
     <CommentList v-if="showComments" :post-id="post.id" :readonly="readonly" />
   </article>
 </template>
