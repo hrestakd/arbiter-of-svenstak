@@ -23,8 +23,22 @@ export function useRealtime(eventId: string): void {
   channel.bind('post:updated', (p: { postId: string; likeCount: number; dislikeCount: number }) =>
     feed.patchReactions(p.postId, p.likeCount, p.dislikeCount)
   );
+  channel.bind(
+    'post:emoji',
+    (p: { postId: string; emojiCounts: Record<string, number> }) =>
+      feed.patchPostEmojiCounts(p.postId, p.emojiCounts)
+  );
+  channel.bind('post:deleted', (p: { postId: string }) => feed.removePost(p.postId));
   channel.bind('comment:new', (p: { postId: string; comment: Comment }) =>
     feed.appendComment(p.postId, p.comment)
+  );
+  channel.bind(
+    'comment:emoji',
+    (p: { postId: string; commentId: string; emojiCounts: Record<string, number> }) =>
+      feed.patchCommentEmojiCounts(p.postId, p.commentId, p.emojiCounts)
+  );
+  channel.bind('comment:deleted', (p: { postId: string; commentId: string }) =>
+    feed.removeComment(p.postId, p.commentId)
   );
   channel.bind('attendee:new', (p: { attendee: Attendee }) => event.upsertAttendee(p.attendee));
   channel.bind('attendee:updated', (p: { attendee: Attendee }) => event.upsertAttendee(p.attendee));

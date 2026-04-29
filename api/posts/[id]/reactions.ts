@@ -1,13 +1,20 @@
 /**
  * POST /api/posts/:id/reactions
- * Body: { kind: 'like' | 'dislike' }
  *
- * Upsert the caller's reaction. Posting the same kind again removes it
- * (toggle); posting a different kind replaces it.
+ * Two body shapes:
+ *
+ *   1. { kind: 'like' | 'dislike' }
+ *      Existing toggle of the binary like/dislike on a post (post_reactions
+ *      table). Same kind again removes; different kind replaces.
+ *
+ *   2. { emoji: '❤️' }
+ *      Slack-style emoji toggle. Targets the parent post by default. Pass
+ *      ?commentId=… in the query string to target a comment of this post
+ *      instead. (Comments have no dedicated route — function budget.)
  */
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { queryOne, withTransaction } from '../../_lib/db.js';
+import { query, queryOne, withTransaction } from '../../_lib/db.js';
 import {
   fail,
   internal,
@@ -15,13 +22,134 @@ import {
   notFound,
   unauthorized,
 } from '../../_lib/errors.js';
-import { readAttendeeSession } from '../../_lib/session.js';
-import { ReactionCreate } from '../../_lib/schemas.js';
+import { readAttendeeSession, type AttendeeSession } from '../../_lib/session.js';
+import { EmojiReact, ReactionCreate } from '../../_lib/schemas.js';
 import { trigger } from '../../_lib/pusher.js';
 
 interface CountsRow {
   like_count: string;
   dislike_count: string;
+}
+
+interface EmojiRow {
+  emoji: string;
+  n: string;
+}
+
+interface MineRow {
+  emoji: string;
+}
+
+async function aggregateEmoji(
+  table: 'post_emoji_reactions' | 'comment_emoji_reactions',
+  fkColumn: 'post_id' | 'comment_id',
+  targetId: string,
+  attendeeId: string
+): Promise<{ emojiCounts: Record<string, number>; myEmojis: string[] }> {
+  const counts = await query<EmojiRow>(
+    `SELECT emoji, count(*)::text AS n FROM ${table} WHERE ${fkColumn} = $1 GROUP BY emoji`,
+    [targetId]
+  );
+  const mine = await query<MineRow>(
+    `SELECT emoji FROM ${table} WHERE ${fkColumn} = $1 AND attendee_id = $2`,
+    [targetId, attendeeId]
+  );
+  const emojiCounts: Record<string, number> = {};
+  for (const r of counts) emojiCounts[r.emoji] = Number(r.n);
+  return { emojiCounts, myEmojis: mine.map((r) => r.emoji) };
+}
+
+async function toggleEmoji(
+  table: 'post_emoji_reactions' | 'comment_emoji_reactions',
+  fkColumn: 'post_id' | 'comment_id',
+  targetId: string,
+  attendeeId: string,
+  emoji: string
+): Promise<void> {
+  await withTransaction(async (tx) => {
+    const existing = await tx.query(
+      `SELECT 1 FROM ${table} WHERE ${fkColumn} = $1 AND attendee_id = $2 AND emoji = $3`,
+      [targetId, attendeeId, emoji]
+    );
+    if (existing.length > 0) {
+      await tx.query(
+        `DELETE FROM ${table} WHERE ${fkColumn} = $1 AND attendee_id = $2 AND emoji = $3`,
+        [targetId, attendeeId, emoji]
+      );
+    } else {
+      await tx.query(
+        `INSERT INTO ${table} (${fkColumn}, attendee_id, emoji) VALUES ($1, $2, $3)`,
+        [targetId, attendeeId, emoji]
+      );
+    }
+  });
+}
+
+async function handleEmojiOnPost(
+  req: VercelRequest,
+  res: VercelResponse,
+  session: AttendeeSession,
+  postId: string,
+  eventId: string
+): Promise<void> {
+  const parsed = EmojiReact.safeParse(req.body);
+  if (!parsed.success) {
+    return fail(res, 400, 'VALIDATION_ERROR', 'Body invalid.', parsed.error.flatten());
+  }
+  const emoji = parsed.data.emoji;
+  console.log('[posts/reactions] emoji toggle (post)', emoji);
+
+  await toggleEmoji('post_emoji_reactions', 'post_id', postId, session.attendeeId, emoji);
+  const agg = await aggregateEmoji(
+    'post_emoji_reactions',
+    'post_id',
+    postId,
+    session.attendeeId
+  );
+  void trigger(eventId, 'post:emoji', { postId, emojiCounts: agg.emojiCounts });
+  res.status(200).json({ postId, ...agg });
+}
+
+async function handleEmojiOnComment(
+  req: VercelRequest,
+  res: VercelResponse,
+  session: AttendeeSession,
+  postId: string,
+  eventId: string,
+  commentId: string
+): Promise<void> {
+  const comment = await queryOne<{ id: string }>(
+    'SELECT id FROM comments WHERE id = $1 AND post_id = $2',
+    [commentId, postId]
+  );
+  if (!comment) return notFound(res, 'Comment not found.');
+
+  const parsed = EmojiReact.safeParse(req.body);
+  if (!parsed.success) {
+    return fail(res, 400, 'VALIDATION_ERROR', 'Body invalid.', parsed.error.flatten());
+  }
+  const emoji = parsed.data.emoji;
+  console.log('[posts/reactions] emoji toggle (comment)', emoji);
+
+  await toggleEmoji(
+    'comment_emoji_reactions',
+    'comment_id',
+    commentId,
+    session.attendeeId,
+    emoji
+  );
+  const agg = await aggregateEmoji(
+    'comment_emoji_reactions',
+    'comment_id',
+    commentId,
+    session.attendeeId
+  );
+  void trigger(eventId, 'comment:emoji', {
+    postId,
+    commentId,
+    emojiCounts: agg.emojiCounts,
+  });
+  res.status(200).json({ postId, commentId, ...agg });
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
@@ -44,7 +172,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       return fail(res, 403, 'WRONG_EVENT', 'Wrong event for this session.');
     }
 
-    const parsed = ReactionCreate.safeParse(req.body);
+    const body = (req.body ?? {}) as Record<string, unknown>;
+    const commentId =
+      typeof req.query.commentId === 'string' ? req.query.commentId : null;
+
+    // Emoji path (post or comment)
+    if ('emoji' in body) {
+      if (commentId) {
+        return handleEmojiOnComment(req, res, session, postId, post.event_id, commentId);
+      }
+      return handleEmojiOnPost(req, res, session, postId, post.event_id);
+    }
+
+    // ---- like/dislike (post only) ----
+    if (commentId) {
+      return fail(res, 400, 'BAD_REQUEST', 'like/dislike is post-only; use { emoji } for comments.');
+    }
+
+    const parsed = ReactionCreate.safeParse(body);
     if (!parsed.success) {
       return fail(res, 400, 'VALIDATION_ERROR', 'Body invalid.', parsed.error.flatten());
     }

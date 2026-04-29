@@ -18,6 +18,7 @@ import { isUniqueViolation, query, queryOne } from '../../_lib/db.js';
 import {
   conflict,
   fail,
+  forbidden,
   internal,
   methodNotAllowed,
   notFound,
@@ -28,6 +29,7 @@ import { incrWithExpiry } from '../../_lib/kv.js';
 import {
   createAttendeeCookie,
   randomToken,
+  readAdminSession,
   readAttendeeSession,
 } from '../../_lib/session.js';
 import { pickRandomEmoji } from '../../_lib/emoji.js';
@@ -70,6 +72,7 @@ interface PostRow {
   event_id: string;
   attendee_id: string;
   body: string;
+  image_url: string | null;
   created_at: string;
   first_name: string;
   last_name: string;
@@ -77,6 +80,7 @@ interface PostRow {
   like_count: number | string;
   dislike_count: number | string;
   comment_count: number | string;
+  emoji_counts: Record<string, number> | null;
 }
 
 interface CountRow {
@@ -86,11 +90,20 @@ interface CountRow {
 
 const POSTS_SQL = `
   SELECT
-    p.id, p.event_id, p.attendee_id, p.body, p.created_at,
+    p.id, p.event_id, p.attendee_id, p.body, p.image_url, p.created_at,
     a.first_name, a.last_name, a.emoji,
     COALESCE(SUM(CASE WHEN r.kind = 'like'    THEN 1 ELSE 0 END), 0) AS like_count,
     COALESCE(SUM(CASE WHEN r.kind = 'dislike' THEN 1 ELSE 0 END), 0) AS dislike_count,
-    (SELECT count(*) FROM comments c WHERE c.post_id = p.id)        AS comment_count
+    (SELECT count(*) FROM comments c WHERE c.post_id = p.id)        AS comment_count,
+    (
+      SELECT COALESCE(jsonb_object_agg(emoji, n), '{}'::jsonb)
+      FROM (
+        SELECT emoji, count(*)::int AS n
+        FROM post_emoji_reactions
+        WHERE post_id = p.id
+        GROUP BY emoji
+      ) sub
+    ) AS emoji_counts
   FROM posts p
   JOIN attendees a ON a.id = p.attendee_id
   LEFT JOIN post_reactions r ON r.post_id = p.id
@@ -109,17 +122,20 @@ function serializeAttendee(r: AttendeeRow) {
   };
 }
 
-function serializePost(r: PostRow) {
+function serializePost(r: PostRow, myEmojis: string[] = []) {
   return {
     id: r.id,
     eventId: r.event_id,
     attendeeId: r.attendee_id,
     body: r.body,
+    imageUrl: r.image_url,
     createdAt: r.created_at,
     author: { firstName: r.first_name, lastName: r.last_name, emoji: r.emoji },
     likeCount: Number(r.like_count),
     dislikeCount: Number(r.dislike_count),
     commentCount: Number(r.comment_count),
+    emojiCounts: r.emoji_counts ?? {},
+    myEmojis,
   };
 }
 
@@ -159,7 +175,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       if (path[1] !== undefined) return notFound(res);
       if (req.method === 'GET') return listPosts(req, res, eventId);
       if (req.method === 'POST') return createPost(req, res, eventId);
-      return methodNotAllowed(res, ['GET', 'POST']);
+      if (req.method === 'DELETE') return deletePost(req, res, eventId);
+      return methodNotAllowed(res, ['GET', 'POST', 'DELETE']);
     }
 
     if (head === 'poll') {
@@ -318,9 +335,27 @@ async function listPosts(req: VercelRequest, res: VercelResponse, eventId: strin
     params
   );
 
+  // For attendees, fetch their per-post emoji selections in one round-trip
+  // so the client can highlight what they've reacted with.
+  const session = await readAttendeeSession(req);
+  const mineByPost = new Map<string, string[]>();
+  if (session && rows.length > 0) {
+    const postIds = rows.map((r) => r.id);
+    const mine = await query<{ post_id: string; emoji: string }>(
+      `SELECT post_id, emoji FROM post_emoji_reactions
+        WHERE attendee_id = $1 AND post_id = ANY($2::uuid[])`,
+      [session.attendeeId, postIds]
+    );
+    for (const m of mine) {
+      const list = mineByPost.get(m.post_id) ?? [];
+      list.push(m.emoji);
+      mineByPost.set(m.post_id, list);
+    }
+  }
+
   const nextCursor = rows.length === limit ? rows[rows.length - 1].created_at : null;
   res.status(200).json({
-    posts: rows.map(serializePost),
+    posts: rows.map((r) => serializePost(r, mineByPost.get(r.id) ?? [])),
     nextCursor,
   });
 }
@@ -342,10 +377,10 @@ async function createPost(req: VercelRequest, res: VercelResponse, eventId: stri
   if (count > 1) return tooManyRequests(res, 10);
 
   const inserted = await queryOne<{ id: string; created_at: string }>(
-    `INSERT INTO posts (event_id, attendee_id, body)
-     VALUES ($1, $2, $3)
+    `INSERT INTO posts (event_id, attendee_id, body, image_url)
+     VALUES ($1, $2, $3, $4)
      RETURNING id, created_at`,
-    [eventId, session.attendeeId, parsed.data.body]
+    [eventId, session.attendeeId, parsed.data.body, parsed.data.imageUrl ?? null]
   );
   if (!inserted) throw new Error('Insert returned no row');
 
@@ -359,6 +394,26 @@ async function createPost(req: VercelRequest, res: VercelResponse, eventId: stri
 
   void trigger(eventId, 'post:new', { post: serializePost(row) });
   res.status(201).json(serializePost(row));
+}
+
+async function deletePost(req: VercelRequest, res: VercelResponse, eventId: string): Promise<void> {
+  // Admin-only moderation. ON DELETE CASCADE on posts.event_id and the FK from
+  // comments / post_reactions takes care of dependent rows.
+  const admin = await readAdminSession(req);
+  console.log('[events/posts] delete, hasAdmin=', !!admin);
+  if (!admin) return forbidden(res, 'Admin required.');
+
+  const postId = typeof req.query.postId === 'string' ? req.query.postId : null;
+  if (!postId) return fail(res, 400, 'BAD_ID', 'Missing postId.');
+
+  const deleted = await queryOne<{ id: string }>(
+    'DELETE FROM posts WHERE id = $1 AND event_id = $2 RETURNING id',
+    [postId, eventId]
+  );
+  if (!deleted) return notFound(res, 'Post not found.');
+
+  void trigger(eventId, 'post:deleted', { postId });
+  res.status(204).end();
 }
 
 // ---------- /api/events/:id/poll ----------

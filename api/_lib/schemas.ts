@@ -35,6 +35,7 @@ export type AttendeePatch = z.infer<typeof AttendeePatch>;
 
 export const PostCreate = z.object({
   body: z.string().trim().min(1).max(2000),
+  imageUrl: z.string().url().max(2000).optional().nullable(),
 });
 
 export const CommentCreate = z.object({
@@ -43,6 +44,16 @@ export const CommentCreate = z.object({
 
 export const ReactionCreate = z.object({
   kind: ReactionKind,
+});
+
+export const REACTION_EMOJIS = ['❤️', '🔥', '🤣', '🎉', '😮', '😢', '👀', '🙏'] as const;
+export type ReactionEmoji = (typeof REACTION_EMOJIS)[number];
+const REACTION_EMOJI_SET = new Set<string>(REACTION_EMOJIS);
+
+export const EmojiReact = z.object({
+  emoji: z
+    .string()
+    .refine((v) => REACTION_EMOJI_SET.has(v), { message: 'Unsupported emoji.' }),
 });
 
 export const PollVote = z.object({

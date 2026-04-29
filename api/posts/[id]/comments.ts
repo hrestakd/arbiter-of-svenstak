@@ -1,13 +1,15 @@
 /**
  * /api/posts/:id/comments
- *   GET  — list comments oldest → newest
- *   POST — create comment (rate-limited 1 / 5s per attendee)
+ *   GET    — list comments oldest → newest
+ *   POST   — create comment (rate-limited 1 / 5s per attendee)
+ *   DELETE — admin-only, requires ?commentId=… ; cascades nothing (leaf row)
  */
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { query, queryOne } from '../../_lib/db.js';
 import {
   fail,
+  forbidden,
   internal,
   methodNotAllowed,
   notFound,
@@ -15,7 +17,7 @@ import {
   unauthorized,
 } from '../../_lib/errors.js';
 import { incrWithExpiry } from '../../_lib/kv.js';
-import { readAttendeeSession } from '../../_lib/session.js';
+import { readAdminSession, readAttendeeSession } from '../../_lib/session.js';
 import { CommentCreate } from '../../_lib/schemas.js';
 import { trigger } from '../../_lib/pusher.js';
 
@@ -28,9 +30,10 @@ interface CommentRow {
   first_name: string;
   last_name: string;
   emoji: string;
+  emoji_counts: Record<string, number> | null;
 }
 
-function serializeComment(r: CommentRow) {
+function serializeComment(r: CommentRow, myEmojis: string[] = []) {
   return {
     id: r.id,
     postId: r.post_id,
@@ -38,8 +41,24 @@ function serializeComment(r: CommentRow) {
     body: r.body,
     createdAt: r.created_at,
     author: { firstName: r.first_name, lastName: r.last_name, emoji: r.emoji },
+    emojiCounts: r.emoji_counts ?? {},
+    myEmojis,
   };
 }
+
+const COMMENT_COLUMNS = `
+  c.id, c.post_id, c.attendee_id, c.body, c.created_at,
+  a.first_name, a.last_name, a.emoji,
+  (
+    SELECT COALESCE(jsonb_object_agg(emoji, n), '{}'::jsonb)
+    FROM (
+      SELECT emoji, count(*)::int AS n
+      FROM comment_emoji_reactions
+      WHERE comment_id = c.id
+      GROUP BY emoji
+    ) sub
+  ) AS emoji_counts
+`;
 
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
   console.log('[posts/comments]', req.method, 'postId=', req.query.id);
@@ -56,15 +75,52 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     if (req.method === 'GET') {
       // Public read.
       const rows = await query<CommentRow>(
-        `SELECT c.id, c.post_id, c.attendee_id, c.body, c.created_at,
-                a.first_name, a.last_name, a.emoji
+        `SELECT ${COMMENT_COLUMNS}
            FROM comments c
            JOIN attendees a ON a.id = c.attendee_id
           WHERE c.post_id = $1
           ORDER BY c.created_at ASC`,
         [postId]
       );
-      return void res.status(200).json(rows.map(serializeComment));
+
+      const session = await readAttendeeSession(req);
+      const mineByComment = new Map<string, string[]>();
+      if (session && rows.length > 0) {
+        const ids = rows.map((r) => r.id);
+        const mine = await query<{ comment_id: string; emoji: string }>(
+          `SELECT comment_id, emoji FROM comment_emoji_reactions
+            WHERE attendee_id = $1 AND comment_id = ANY($2::uuid[])`,
+          [session.attendeeId, ids]
+        );
+        for (const m of mine) {
+          const list = mineByComment.get(m.comment_id) ?? [];
+          list.push(m.emoji);
+          mineByComment.set(m.comment_id, list);
+        }
+      }
+
+      return void res
+        .status(200)
+        .json(rows.map((r) => serializeComment(r, mineByComment.get(r.id) ?? [])));
+    }
+
+    if (req.method === 'DELETE') {
+      // Admin-only moderation. Targets a single comment by id.
+      const admin = await readAdminSession(req);
+      if (!admin) return forbidden(res, 'Admin required.');
+
+      const commentId =
+        typeof req.query.commentId === 'string' ? req.query.commentId : null;
+      if (!commentId) return fail(res, 400, 'BAD_ID', 'Missing commentId.');
+
+      const deleted = await queryOne<{ id: string }>(
+        'DELETE FROM comments WHERE id = $1 AND post_id = $2 RETURNING id',
+        [commentId, postId]
+      );
+      if (!deleted) return notFound(res, 'Comment not found.');
+
+      void trigger(post.event_id, 'comment:deleted', { postId, commentId });
+      return void res.status(204).end();
     }
 
     // Writes still require an attendee session for the matching event.
@@ -92,8 +148,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       if (!inserted) throw new Error('Insert returned no row');
 
       const row = await queryOne<CommentRow>(
-        `SELECT c.id, c.post_id, c.attendee_id, c.body, c.created_at,
-                a.first_name, a.last_name, a.emoji
+        `SELECT ${COMMENT_COLUMNS}
            FROM comments c
            JOIN attendees a ON a.id = c.attendee_id
           WHERE c.id = $1`,
@@ -108,7 +163,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       return void res.status(201).json(serializeComment(row));
     }
 
-    return methodNotAllowed(res, ['GET', 'POST']);
+    return methodNotAllowed(res, ['GET', 'POST', 'DELETE']);
   } catch (err) {
     internal(res, err);
   }

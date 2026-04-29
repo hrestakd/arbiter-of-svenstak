@@ -8,9 +8,9 @@ const store = useEventStore();
 type Choice = 'eat_drink' | 'drink' | 'eat';
 
 const OPTIONS: { value: Choice; label: string }[] = [
-  { value: 'eat_drink', label: 'Eating & Drinking' },
-  { value: 'drink', label: 'Drinking only' },
-  { value: 'eat', label: 'Eating only' },
+  { value: 'eat_drink', label: 'Jedem i Pijem' },
+  { value: 'drink', label: 'Samo Pijem' },
+  { value: 'eat', label: 'Samo Jedem' },
 ];
 
 const total = computed(() => {
@@ -32,7 +32,7 @@ async function vote(choice: Choice): Promise<void> {
 <template>
   <section class="card space-y-3">
     <header class="flex items-baseline justify-between">
-      <h2 class="text-xl">What are we doing?</h2>
+      <h2 class="text-xl">Poll za hranu</h2>
       <span class="text-sm text-muted">{{ total }} vote{{ total === 1 ? '' : 's' }}</span>
     </header>
 
