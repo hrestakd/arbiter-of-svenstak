@@ -73,9 +73,15 @@ async function deletePost(): Promise<void> {
         class="max-h-96 w-auto rounded border border-muted/20"
       />
     </a>
-    <footer class="flex items-center gap-2">
+    <footer class="flex flex-wrap items-center gap-2">
       <ReactionButton icon="👍" label="Like" :count="post.likeCount" @click="react('like')" />
       <ReactionButton icon="👎" label="Dislike" :count="post.dislikeCount" @click="react('dislike')" />
+      <EmojiReactionBar
+        :emoji-counts="post.emojiCounts"
+        :my-emojis="post.myEmojis"
+        :readonly="readonly"
+        @react="reactEmoji"
+      />
       <button
         type="button"
         class="ml-auto text-sm text-muted hover:text-ink"
@@ -84,12 +90,6 @@ async function deletePost(): Promise<void> {
         💬 {{ post.commentCount }} {{ post.commentCount === 1 ? 'comment' : 'comments' }}
       </button>
     </footer>
-    <EmojiReactionBar
-      :emoji-counts="post.emojiCounts"
-      :my-emojis="post.myEmojis"
-      :readonly="readonly"
-      @react="reactEmoji"
-    />
     <CommentList v-if="showComments" :post-id="post.id" :readonly="readonly" />
   </article>
 </template>
