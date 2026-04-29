@@ -4,6 +4,10 @@
 
 @layer base {
   html, body, #app { height: 100%; }
+  /* Stab peekers slide out from behind the event card and can extend past
+     the viewport on narrow screens. `overflow: clip` clips horizontally
+     without creating a scroll container, so it doesn't break sticky. */
+  body { overflow-x: clip; }
   body {
     @apply bg-bg text-ink font-body;
     font-size: 18px;

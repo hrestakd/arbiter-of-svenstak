@@ -16,6 +16,7 @@ import MealPoll from '@/components/MealPoll.vue';
 import ActivityFeed from '@/components/ActivityFeed.vue';
 import MyRsvp from '@/components/MyRsvp.vue';
 import PaymentTagsCard from '@/components/PaymentTagsCard.vue';
+import StabPeekers from '@/components/StabPeekers.vue';
 
 const props = defineProps<{ archiveYear?: number }>();
 const store = useEventStore();
@@ -101,8 +102,16 @@ const formattedDate = computed(() => {
         </button>
       </div>
 
-      <div class="xl:grid xl:grid-cols-[1fr_16rem] xl:gap-6 xl:items-start space-y-5 xl:space-y-0">
-        <article class="card overflow-hidden p-0">
+      <div class="lg:grid lg:grid-cols-[1fr_18rem] lg:gap-5 lg:items-start space-y-5 lg:space-y-0">
+        <div class="relative">
+          <StabPeekers v-if="!isArchive" />
+        <article class="card overflow-hidden p-0 relative z-10">
+          <img
+            v-if="store.event.headerImageUrl"
+            :src="store.event.headerImageUrl"
+            :alt="store.event.title"
+            class="w-full aspect-[2/1] object-cover"
+          />
           <div class="p-5 space-y-2">
             <div class="flex items-baseline justify-between gap-2 flex-wrap">
               <h1 class="text-3xl">{{ store.event.title }}</h1>
@@ -130,6 +139,7 @@ const formattedDate = computed(() => {
             />
           </div>
         </article>
+        </div>
 
         <PaymentTagsCard
           :tags="store.event.paymentTags"
