@@ -16,6 +16,7 @@ import MealPoll from '@/components/MealPoll.vue';
 import ActivityFeed from '@/components/ActivityFeed.vue';
 import MyRsvp from '@/components/MyRsvp.vue';
 import PaymentTagsCard from '@/components/PaymentTagsCard.vue';
+import StabPeekers from '@/components/StabPeekers.vue';
 
 const props = defineProps<{ archiveYear?: number }>();
 const store = useEventStore();
@@ -94,7 +95,9 @@ const formattedDate = computed(() => {
       </div>
 
       <div class="lg:grid lg:grid-cols-[1fr_18rem] lg:gap-5 lg:items-start space-y-5 lg:space-y-0">
-        <article class="card overflow-hidden p-0">
+        <div class="relative">
+          <StabPeekers v-if="!isArchive" />
+        <article class="card overflow-hidden p-0 relative z-10">
           <img
             v-if="store.event.headerImageUrl"
             :src="store.event.headerImageUrl"
@@ -128,6 +131,7 @@ const formattedDate = computed(() => {
             />
           </div>
         </article>
+        </div>
 
         <PaymentTagsCard
           :tags="store.event.paymentTags"

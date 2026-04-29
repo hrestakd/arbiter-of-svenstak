@@ -35,9 +35,9 @@ function continueToEvent(): void {
   <main class="min-h-screen flex items-center justify-center p-4 sm:p-8">
     <div class="card w-full max-w-md space-y-5">
       <header class="space-y-1 text-center">
-        <h1 class="text-2xl">You're in.</h1>
+        <h1 class="text-2xl">Aplauz!</h1>
         <p class="text-muted">
-          If you'd like to pitch in for the night, here are our handles.
+          Kotizacija je 5 EUR. Za razliku od inflacije, mi ne rastemo.
         </p>
       </header>
 
@@ -59,7 +59,7 @@ function continueToEvent(): void {
       <p v-else class="text-sm text-muted text-center">(No payment tags configured yet.)</p>
 
       <button class="btn w-full" type="button" @click="continueToEvent">
-        Continue to the event →
+        Idemo dalje →
       </button>
     </div>
   </main>

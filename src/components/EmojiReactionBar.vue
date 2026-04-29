@@ -7,6 +7,7 @@ const props = defineProps<{
   myEmojis: string[];
   readonly?: boolean;
   size?: 'sm' | 'md';
+  hidePicker?: boolean;
 }>();
 
 const emit = defineEmits<{ (e: 'react', emoji: string): void }>();
@@ -61,37 +62,39 @@ const btnSize = computed(() =>
       <span class="font-mono">{{ emojiCounts[emoji] ?? 0 }}</span>
     </button>
 
-    <button
-      v-if="!readonly"
-      type="button"
-      :class="[
-        'rounded-full border border-muted/30 text-muted hover:border-ink/50 hover:text-ink',
-        btnSize,
-      ]"
-      :aria-expanded="showPicker"
-      title="Add reaction"
-      @click="showPicker = !showPicker"
-    >
-      ＋
-    </button>
-
-    <div
-      v-if="showPicker && !readonly"
-      class="flex flex-wrap items-center gap-1 ml-1 px-1 py-0.5 rounded border border-muted/30 bg-paper"
-    >
+    <template v-if="!hidePicker">
       <button
-        v-for="emoji in REACTION_EMOJIS"
-        :key="emoji"
+        v-if="!readonly"
         type="button"
-        :disabled="submitting === emoji"
         :class="[
-          'rounded hover:bg-accent/20 disabled:opacity-50 px-1',
-          mySet.has(emoji) ? 'bg-accent/10' : '',
+          'rounded-full border border-muted/30 text-muted hover:border-ink/50 hover:text-ink',
+          btnSize,
         ]"
-        @click="toggle(emoji)"
+        :aria-expanded="showPicker"
+        title="Add reaction"
+        @click="showPicker = !showPicker"
       >
-        {{ emoji }}
+        ＋
       </button>
-    </div>
+
+      <div
+        v-if="showPicker && !readonly"
+        class="flex flex-wrap items-center gap-1 ml-1 px-1 py-0.5 rounded border border-muted/30 bg-paper"
+      >
+        <button
+          v-for="emoji in REACTION_EMOJIS"
+          :key="emoji"
+          type="button"
+          :disabled="submitting === emoji"
+          :class="[
+            'rounded hover:bg-accent/20 disabled:opacity-50 px-1',
+            mySet.has(emoji) ? 'bg-accent/10' : '',
+          ]"
+          @click="toggle(emoji)"
+        >
+          {{ emoji }}
+        </button>
+      </div>
+    </template>
   </div>
 </template>
