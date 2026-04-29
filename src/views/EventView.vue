@@ -105,12 +105,6 @@ const formattedDate = computed(() => {
       <div class="max-w-3xl mx-auto relative">
         <StabPeekers v-if="!isArchive" />
         <article class="card overflow-hidden p-0 relative z-10">
-          <img
-            v-if="store.event.headerImageUrl"
-            :src="store.event.headerImageUrl"
-            :alt="store.event.title"
-            class="w-full aspect-[2/1] object-cover"
-          />
           <div class="p-5 space-y-2">
             <div class="flex items-baseline justify-between gap-2 flex-wrap">
               <h1 class="text-3xl">{{ store.event.title }}</h1>

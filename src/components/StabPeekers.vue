@@ -14,9 +14,9 @@
 import { onBeforeUnmount, onMounted, ref } from 'vue';
 
 const SLIDE_MS = 900;
-const HOLD_MS = 1000;
-const MIN_DELAY_MS = 1000;
-const MAX_DELAY_MS = 5000;
+const HOLD_MS = 500;
+const MIN_DELAY_MS = 500;
+const MAX_DELAY_MS = 3000;
 
 interface PeekState {
   /** translateX value while hidden / shown (% of own width). */
@@ -64,8 +64,10 @@ async function loop(
   const hiddenX = side === 'left' ? 100 : -100;
   await delay(initialDelay);
   while (!cancelled) {
-    // Fresh angle and y-offset every cycle.
-    const rot = rand(-22, 22);
+    // Magnitude between 30° and 120°. The sign follows the side so each
+    // peeker leans away from the card edge it pivots on.
+    const magnitude = rand(30, 120);
+    const rot = side === 'left' ? -magnitude : magnitude;
     const y = rand(-8, 8);
     set({ x: 0, y, rot });
     await delay(SLIDE_MS + HOLD_MS);
