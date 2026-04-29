@@ -102,9 +102,8 @@ const formattedDate = computed(() => {
         </button>
       </div>
 
-      <div class="lg:grid lg:grid-cols-[1fr_18rem] lg:gap-5 lg:items-start space-y-5 lg:space-y-0">
-        <div class="relative">
-          <StabPeekers v-if="!isArchive" />
+      <div class="max-w-3xl mx-auto relative">
+        <StabPeekers v-if="!isArchive" />
         <article class="card overflow-hidden p-0 relative z-10">
           <img
             v-if="store.event.headerImageUrl"
@@ -139,16 +138,19 @@ const formattedDate = computed(() => {
             />
           </div>
         </article>
-        </div>
-
-        <PaymentTagsCard
-          :tags="store.event.paymentTags"
-          class="xl:sticky xl:top-4 xl:max-h-[calc(100vh-2rem)] xl:overflow-y-auto"
-        />
       </div>
 
       <div class="max-w-3xl mx-auto space-y-5">
-        <MyRsvp v-if="!isArchive && session.isAttendee" />
+        <div class="lg:flex lg:gap-5 lg:items-start space-y-5 lg:space-y-0">
+          <MyRsvp
+            v-if="!isArchive && session.isAttendee"
+            class="lg:flex-1 lg:min-w-0"
+          />
+          <PaymentTagsCard
+            :tags="store.event.paymentTags"
+            class="lg:w-64 lg:shrink-0"
+          />
+        </div>
 
         <AttendeeList :attendees="store.attendees" />
         <MealPoll :event-id="eventId" :readonly="isReadOnly" />
