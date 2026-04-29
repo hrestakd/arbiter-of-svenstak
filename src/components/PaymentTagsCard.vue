@@ -21,7 +21,7 @@ async function copy(value: string, ev: Event): Promise<void> {
 <template>
   <aside v-if="tags.length" class="card space-y-3">
     <header class="space-y-0.5">
-      <h2 class="text-lg">Pitch in</h2>
+      <h2 class="text-lg">Uplati nam</h2>
       <p class="text-xs text-muted">Revolut · KeksPay</p>
     </header>
 

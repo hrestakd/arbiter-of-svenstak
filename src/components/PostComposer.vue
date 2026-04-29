@@ -111,7 +111,7 @@ async function submit(): Promise<void> {
       class="input resize-none"
       rows="3"
       maxlength="2000"
-      placeholder="What's on your mind?"
+      placeholder="A piši, nije da te možemo spriječit..."
       :disabled="submitting"
     />
 
