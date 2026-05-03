@@ -79,10 +79,10 @@ const formattedDate = computed(() => {
 <template>
   <div class="min-h-screen">
     <img
-      v-if="store.event?.headerImageUrl"
+      v-if="store.event?.headerImageUrl && !isArchive"
       :src="store.event.headerImageUrl"
       :alt="store.event.title"
-      class="w-full aspect-[2/1] sm:aspect-[3/1] lg:aspect-[16/5] max-h-[70vh] object-cover block"
+      class="w-full h-auto max-h-[70vh] object-contain block mx-auto"
     />
 
     <main class="p-4 sm:p-8 mx-auto space-y-5 max-w-5xl xl:max-w-[84rem]">

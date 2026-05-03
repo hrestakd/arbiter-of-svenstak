@@ -143,7 +143,7 @@ async function submit(): Promise<void> {
           :disabled="submitting || uploading"
           @click="pickFile"
         >
-          {{ uploading ? 'Uploading…' : imageUrl ? 'Replace image' : '📎 Add image' }}
+          {{ uploading ? 'Uploading…' : imageUrl ? 'Zamjeni sliku' : '📎 Dodaj sliku (ako moraš)' }}
         </button>
         <span class="text-xs text-muted">{{ draft.length }} / 2000</span>
       </div>

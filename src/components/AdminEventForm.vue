@@ -262,7 +262,7 @@ function submit(): void {
     <fieldset class="space-y-2">
       <legend class="text-sm text-muted">Header image</legend>
       <div v-if="form.headerImageUrl" class="rounded-lg overflow-hidden border border-muted/30">
-        <img :src="form.headerImageUrl" alt="" class="w-full aspect-[2/1] object-cover" />
+        <img :src="form.headerImageUrl" alt="" class="w-full h-auto max-h-[60vh] object-contain mx-auto" />
       </div>
       <input
         ref="fileInput"

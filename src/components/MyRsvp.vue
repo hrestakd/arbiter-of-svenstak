@@ -65,7 +65,7 @@ async function togglePlusOne(): Promise<void> {
     </header>
 
     <fieldset class="space-y-2">
-      <legend class="text-sm text-muted">Will you be there?</legend>
+      <legend class="text-sm text-muted">Dolaziš?</legend>
       <div class="grid grid-cols-3 gap-2">
         <button
           v-for="opt in ATTENDANCE_OPTIONS"

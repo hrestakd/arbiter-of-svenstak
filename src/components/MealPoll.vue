@@ -62,6 +62,6 @@ async function vote(choice: Choice): Promise<void> {
         </button>
       </li>
     </ul>
-    <p v-if="!store.poll.mine && !readonly" class="text-xs text-muted">Pick one — you can change it later.</p>
+    <p v-if="!store.poll.mine && !readonly" class="text-xs text-muted">Ako si vege javi se posebno</p>
   </section>
 </template>
