@@ -419,11 +419,16 @@ async function deletePost(req: VercelRequest, res: VercelResponse, eventId: stri
 // ---------- /api/events/:id/poll ----------
 
 async function pollCounts(eventId: string): Promise<{ eat_drink: number; drink: number; eat: number }> {
+  // +1 attendees count as 2 votes — they're bringing a partner whose mouth
+  // also needs feeding. Storage stays one-row-per-attendee; only the rollup
+  // is weighted, so toggling plus_one is reflected on the next read.
   const rows = await query<CountRow>(
-    `SELECT choice, count(*)::text AS n
-       FROM poll_votes
-      WHERE event_id = $1
-      GROUP BY choice`,
+    `SELECT pv.choice,
+            SUM(CASE WHEN a.plus_one THEN 2 ELSE 1 END)::text AS n
+       FROM poll_votes pv
+       JOIN attendees a ON a.id = pv.attendee_id
+      WHERE pv.event_id = $1
+      GROUP BY pv.choice`,
     [eventId]
   );
   const out = { eat_drink: 0, drink: 0, eat: 0 };
