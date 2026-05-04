@@ -6,8 +6,11 @@
   html, body, #app { height: 100%; }
   /* Stab peekers slide out from behind the event card and can extend past
      the viewport on narrow screens. `overflow: clip` clips horizontally
-     without creating a scroll container, so it doesn't break sticky. */
-  body { overflow-x: clip; }
+     without creating a scroll container, so it doesn't break sticky.
+     Must be applied to both html and body — on mobile (notably iOS Safari)
+     the html element is the scroll root, so clipping only body still
+     leaves the page horizontally scrollable. */
+  html, body { overflow-x: clip; }
   body {
     @apply bg-bg text-ink font-body;
     font-size: 18px;
